@@ -1,0 +1,84 @@
+{{define "content"}}
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-white">Settings</h1>
+    <p class="text-sm text-gray-500 mt-1">Manage your account and preferences</p>
+</div>
+
+<div class="max-w-2xl space-y-5">
+    <!-- Profile -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-6">
+        <h2 class="text-sm font-semibold text-white mb-4">Profile</h2>
+        <form class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
+                    <input type="text" value="Parth Jindal"
+                        class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white focus:border-kavach-accent outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5">Company</label>
+                    <input type="text" value=""
+                        placeholder="Your company"
+                        class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent outline-none transition">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
+                <input type="email" value="parth@example.com" disabled
+                    class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed">
+            </div>
+            <button type="submit" class="bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-4 py-2 rounded-lg text-xs font-semibold transition">
+                Update Profile
+            </button>
+        </form>
+    </div>
+
+    <!-- Preferences -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-6">
+        <h2 class="text-sm font-semibold text-white mb-4">Preferences</h2>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-300">Email digest</p>
+                    <p class="text-xs text-gray-500">Daily summary of all token activity</p>
+                </div>
+                <button class="w-10 h-5 rounded-full bg-kavach-accent/30 relative transition">
+                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-kavach-accent transition-transform translate-x-5"></span>
+                </button>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-300">Critical alerts only</p>
+                    <p class="text-xs text-gray-500">Only notify on critical severity events</p>
+                </div>
+                <button class="w-10 h-5 rounded-full bg-gray-600 relative transition">
+                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-gray-400 transition-transform"></span>
+                </button>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-300">Auto-deactivate triggered tokens</p>
+                    <p class="text-xs text-gray-500">Disable tokens after first trigger</p>
+                </div>
+                <button class="w-10 h-5 rounded-full bg-gray-600 relative transition">
+                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-gray-400 transition-transform"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="bg-kavach-darker border border-red-500/30 rounded-xl p-6">
+        <h2 class="text-sm font-semibold text-red-400 mb-4">Danger Zone</h2>
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-300">Delete account</p>
+                <p class="text-xs text-gray-500">Permanently delete your account and all tokens</p>
+            </div>
+            <button class="border border-red-500/50 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                Delete Account
+            </button>
+        </div>
+    </div>
+</div>
+{{end}}

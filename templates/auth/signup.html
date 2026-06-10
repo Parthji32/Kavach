@@ -1,0 +1,54 @@
+{{define "content"}}
+<div class="min-h-[80vh] flex items-center justify-center">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-kavach-accent">Kavach</h1>
+            <p class="text-gray-500 mt-1">Create your account</p>
+        </div>
+
+        <div class="bg-kavach-darker border border-kavach-border rounded-xl p-8">
+            <h2 class="text-xl font-semibold text-white mb-6">Get started for free</h2>
+
+            <form hx-post="/api/v1/auth/signup" hx-target="#auth-result" hx-swap="innerHTML">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">Full Name</label>
+                        <input type="text" name="name" required
+                            placeholder="Jane Smith"
+                            class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
+                        <input type="email" name="email" required
+                            placeholder="you@company.com"
+                            class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">Company <span class="text-gray-500">(optional)</span></label>
+                        <input type="text" name="company"
+                            placeholder="Acme Inc."
+                            class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">Credential</label>
+                        <input type="password" name="credential" required minlength="8"
+                            placeholder="Min 8 characters"
+                            class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full mt-6 bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark py-2.5 rounded-lg text-sm font-semibold transition">
+                    Create Account
+                </button>
+
+                <div id="auth-result" class="mt-4"></div>
+            </form>
+
+            <p class="text-center text-sm text-gray-500 mt-6">
+                Already have an account?
+                <a href="/login" class="text-kavach-accent hover:text-kavach-accent-hover transition">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+{{end}}

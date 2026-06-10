@@ -1,0 +1,103 @@
+{{define "content"}}
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-white">Integrations</h1>
+    <p class="text-sm text-gray-500 mt-1">Configure alert delivery channels</p>
+</div>
+
+<div class="max-w-2xl space-y-5">
+    <!-- Slack Integration -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-[#4A154B]/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-[#E01E5A]" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-white">Slack</h3>
+                    <p class="text-xs text-gray-500">Get instant alerts in your Slack channel</p>
+                </div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-medium {{if .IsSlackOn}}bg-kavach-accent/15 text-kavach-accent{{else}}bg-gray-500/15 text-gray-400{{end}}">
+                {{if .IsSlackOn}}Connected{{else}}Not configured{{end}}
+            </span>
+        </div>
+        <form hx-post="/api/v1/integrations/slack" hx-target="#slack-result" hx-swap="innerHTML">
+            <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">Webhook URL</label>
+                <input type="url" name="webhook_url" value="{{.SlackURL}}"
+                    placeholder="https://hooks.slack.com/services/T00/B00/xxxx"
+                    class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+            </div>
+            <div class="flex items-center gap-3 mt-3">
+                <button type="submit" class="bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-4 py-2 rounded-lg text-xs font-semibold transition">Save</button>
+                <button type="button" class="text-xs text-gray-400 hover:text-white transition">Test Connection</button>
+            </div>
+            <div id="slack-result" class="mt-2"></div>
+        </form>
+    </div>
+
+    <!-- Email Integration -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-white">Email Alerts</h3>
+                    <p class="text-xs text-gray-500">Receive alerts via email (powered by Resend)</p>
+                </div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-medium {{if .IsEmailOn}}bg-kavach-accent/15 text-kavach-accent{{else}}bg-gray-500/15 text-gray-400{{end}}">
+                {{if .IsEmailOn}}Connected{{else}}Not configured{{end}}
+            </span>
+        </div>
+        <form hx-post="/api/v1/integrations/email" hx-target="#email-result" hx-swap="innerHTML">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5">Send alerts to</label>
+                    <input type="email" name="to_email" value="{{.EmailTo}}"
+                        placeholder="security@yourcompany.com"
+                        class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5">Resend API Key</label>
+                    <input type="text" name="resend_key"
+                        placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+                </div>
+            </div>
+            <div class="flex items-center gap-3 mt-3">
+                <button type="submit" class="bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-4 py-2 rounded-lg text-xs font-semibold transition">Save</button>
+                <button type="button" class="text-xs text-gray-400 hover:text-white transition">Send Test</button>
+            </div>
+            <div id="email-result" class="mt-2"></div>
+        </form>
+    </div>
+
+    <!-- Webhook Integration -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-kavach-accent/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-kavach-accent" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+            </div>
+            <div>
+                <h3 class="text-sm font-semibold text-white">Custom Webhook</h3>
+                <p class="text-xs text-gray-500">POST alert payloads to any endpoint</p>
+            </div>
+        </div>
+        <form hx-post="/api/v1/integrations/webhook" hx-target="#webhook-result" hx-swap="innerHTML">
+            <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">Webhook URL</label>
+                <input type="url" name="webhook_url"
+                    placeholder="https://your-api.com/kavach-webhook"
+                    class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+            </div>
+            <div class="flex items-center gap-3 mt-3">
+                <button type="submit" class="bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-4 py-2 rounded-lg text-xs font-semibold transition">Save</button>
+            </div>
+            <div id="webhook-result" class="mt-2"></div>
+        </form>
+    </div>
+</div>
+{{end}}

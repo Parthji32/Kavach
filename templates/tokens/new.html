@@ -1,0 +1,111 @@
+{{define "content"}}
+<!-- Top Bar -->
+<div class="flex items-center gap-3 mb-6">
+    <a href="/tokens" class="text-gray-400 hover:text-white transition">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+    </a>
+    <h1 class="text-2xl font-semibold text-white">Create New Token</h1>
+</div>
+
+<!-- Create Token Form -->
+<div class="max-w-2xl">
+    <form hx-post="/api/v1/tokens" hx-target="#result" hx-swap="innerHTML" class="space-y-6">
+        
+        <!-- Token Name -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Token Name</label>
+            <input type="text" name="name" required
+                placeholder="e.g., production-db-credentials"
+                class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+            <p class="text-xs text-gray-500 mt-1">A descriptive name to identify this token in your dashboard</p>
+        </div>
+
+        <!-- Token Type -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-3">Token Type</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                
+                <!-- URL Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="url" class="peer sr-only" checked>
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-medium text-gray-200">URL</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Unique URL that captures visitor fingerprint on access</p>
+                    </div>
+                </label>
+
+                <!-- Document Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="document" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-medium text-gray-200">Document</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Fake PDF/DOC that alerts when opened</p>
+                    </div>
+                </label>
+
+                <!-- API Key Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="api_key" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-medium text-gray-200">API Key</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Fake credential that alerts when used</p>
+                    </div>
+                </label>
+
+                <!-- DNS Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="dns" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-kavach-accent" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L7.586 10 5.293 7.707a1 1 0 010-1.414zM11 12a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-medium text-gray-200">DNS</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Fake hostname that alerts on DNS resolution</p>
+                    </div>
+                </label>
+
+                <!-- Email Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="email" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-pink-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+                            <span class="text-sm font-medium text-gray-200">Email</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Fake email address that alerts on receive</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Description <span class="text-gray-500">(optional)</span></label>
+            <textarea name="description" rows="3"
+                placeholder="Where will you deploy this token? Any notes for your team..."
+                class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition resize-none"></textarea>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex items-center gap-4">
+            <button type="submit" class="bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-6 py-2.5 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                Create Token
+            </button>
+            <span class="htmx-indicator text-xs text-gray-500">Creating...</span>
+        </div>
+    </form>
+
+    <!-- Result (HTMX replaces this) -->
+    <div id="result" class="mt-6"></div>
+</div>
+{{end}}

@@ -1,0 +1,112 @@
+{{define "content"}}
+<div class="flex items-center gap-3 mb-6">
+    <a href="/attackers" class="text-gray-400 hover:text-white transition">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+    </a>
+    <h1 class="text-2xl font-semibold text-white">Attacker Profile</h1>
+    <span class="px-2 py-0.5 rounded text-[11px] font-medium
+        {{if eq .Attacker.ThreatLevel "critical"}}bg-red-500/15 text-red-400
+        {{else if eq .Attacker.ThreatLevel "high"}}bg-orange-500/15 text-orange-400
+        {{else if eq .Attacker.ThreatLevel "medium"}}bg-amber-500/15 text-amber-400
+        {{else}}bg-blue-500/15 text-blue-400{{end}}">
+        {{.Attacker.ThreatLevel}} threat
+    </span>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <!-- Left: Main Info -->
+    <div class="lg:col-span-2 space-y-5">
+        <!-- Identity Card -->
+        <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-white mb-4">Identity</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">IP Address</p>
+                    <code class="text-sm font-mono text-kavach-accent">{{.Attacker.IPAddress}}</code>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Fingerprint</p>
+                    <code class="text-xs font-mono text-gray-300">{{.Attacker.Fingerprint}}</code>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Location</p>
+                    <p class="text-sm text-gray-300">{{.Attacker.City}}, {{.Attacker.Country}}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">ISP / ASN</p>
+                    <p class="text-sm text-gray-300">{{.Attacker.ISP}} ({{.Attacker.ASN}})</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Browser / OS</p>
+                    <p class="text-sm text-gray-300">{{.Attacker.Browser}} / {{.Attacker.OS}}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">User Agent</p>
+                    <p class="text-xs text-gray-400 truncate">{{.Attacker.UserAgent}}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-white mb-4">Activity Timeline</h2>
+            <div class="space-y-3">
+                {{range .Attacker.Events}}
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-kavach-border/50">
+                    <div class="w-6 h-6 rounded flex items-center justify-center shrink-0
+                        {{if eq .Severity "critical"}}bg-red-500/15 text-red-400
+                        {{else if eq .Severity "warning"}}bg-amber-500/15 text-amber-400
+                        {{else}}bg-blue-500/15 text-blue-400{{end}}">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-200">{{.Title}}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">{{.IPAddress}} &bull; {{.TimeAgo}}</p>
+                    </div>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/5 text-gray-400">{{.TokenType}}</span>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Stats Sidebar -->
+    <div class="space-y-5">
+        <!-- Quick Stats -->
+        <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-white mb-4">Statistics</h2>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">Total Triggers</span>
+                    <span class="text-sm font-mono text-red-400 font-semibold">{{.Attacker.TriggerCount}}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">Tokens Triggered</span>
+                    <span class="text-sm font-mono text-gray-300">{{.Attacker.TokensTriggered}}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">First Seen</span>
+                    <span class="text-xs text-gray-300">{{.Attacker.FirstSeen}}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">Last Seen</span>
+                    <span class="text-xs text-gray-300">{{.Attacker.LastSeen}}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-white mb-3">Notes</h2>
+            {{if .Attacker.Notes}}
+            <p class="text-sm text-gray-400">{{.Attacker.Notes}}</p>
+            {{else}}
+            <p class="text-xs text-gray-500">No notes yet</p>
+            {{end}}
+            <textarea placeholder="Add notes about this attacker..."
+                class="w-full mt-3 bg-kavach-dark border border-kavach-border rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:border-kavach-accent outline-none resize-none"
+                rows="3"></textarea>
+        </div>
+    </div>
+</div>
+{{end}}

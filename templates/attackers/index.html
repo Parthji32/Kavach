@@ -1,0 +1,56 @@
+{{define "content"}}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-white">Attackers</h1>
+    <p class="text-xs text-gray-500">Profiled threat actors based on fingerprint correlation</p>
+</div>
+
+<!-- Attacker Cards -->
+<div class="space-y-3">
+    {{range .Attackers}}
+    <a href="/attackers/{{.ID}}" class="block bg-kavach-darker border border-kavach-border rounded-xl p-5 hover:border-kavach-accent/30 transition">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <!-- Threat indicator -->
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center
+                    {{if eq .ThreatLevel "critical"}}bg-red-500/15 text-red-400
+                    {{else if eq .ThreatLevel "high"}}bg-orange-500/15 text-orange-400
+                    {{else if eq .ThreatLevel "medium"}}bg-amber-500/15 text-amber-400
+                    {{else}}bg-blue-500/15 text-blue-400{{end}}">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <code class="text-sm font-mono text-gray-200">{{.IPAddress}}</code>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium
+                            {{if eq .ThreatLevel "critical"}}bg-red-500/15 text-red-400
+                            {{else if eq .ThreatLevel "high"}}bg-orange-500/15 text-orange-400
+                            {{else if eq .ThreatLevel "medium"}}bg-amber-500/15 text-amber-400
+                            {{else}}bg-blue-500/15 text-blue-400{{end}}">
+                            {{.ThreatLevel}}
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5">{{.City}}, {{.Country}} &bull; {{.ISP}} &bull; {{.Browser}}/{{.OS}}</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-sm font-mono {{if gt .TriggerCount 5}}text-red-400{{else}}text-gray-400{{end}}">{{.TriggerCount}} triggers</p>
+                <p class="text-xs text-gray-500">Last seen {{.LastSeen}}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-kavach-border/50">
+            <span class="text-[10px] text-gray-500">Fingerprint: <code class="text-gray-400">{{.Fingerprint}}</code></span>
+            <span class="text-[10px] text-gray-500">Tokens triggered: <span class="text-gray-300">{{.TokensTriggered}}</span></span>
+            <span class="text-[10px] text-gray-500">First seen: {{.FirstSeen}}</span>
+        </div>
+    </a>
+    {{end}}
+
+    {{if not .Attackers}}
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        <p class="text-sm text-gray-400">No attackers profiled yet</p>
+        <p class="text-xs text-gray-500 mt-1">When tokens are triggered, attacker profiles appear here</p>
+    </div>
+    {{end}}
+</div>
+{{end}}

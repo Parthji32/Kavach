@@ -1,0 +1,206 @@
+{{define "content"}}
+<!-- Top Bar -->
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold text-white">Dashboard</h1>
+    <div class="flex items-center gap-4">
+        <!-- Notification bell -->
+        <button class="relative text-gray-400 hover:text-white transition">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z"/></svg>
+            {{if gt .AlertCount 0}}
+            <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse-dot"></span>
+            {{end}}
+        </button>
+        <!-- Create token button -->
+        <a href="/tokens/new" class="flex items-center gap-2 bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-4 py-2 rounded-lg text-sm font-semibold transition">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            New Token
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Active Tokens -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+        <p class="text-[11px] uppercase tracking-wider text-gray-500 mb-2">Active Tokens</p>
+        <p class="text-3xl font-bold font-mono text-kavach-accent">{{.Stats.ActiveTokens}}</p>
+        <p class="text-xs text-gray-500 mt-1">
+            <span class="text-kavach-accent">↑ {{.Stats.TokensThisWeek}}</span> this week
+        </p>
+    </div>
+    <!-- Triggers Today -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+        <p class="text-[11px] uppercase tracking-wider text-gray-500 mb-2">Triggers Today</p>
+        <p class="text-3xl font-bold font-mono text-red-400">{{.Stats.TriggersToday}}</p>
+        <p class="text-xs text-gray-500 mt-1">
+            {{if gt .Stats.TriggersDelta 0}}<span class="text-red-400">↑ {{.Stats.TriggersDelta}}</span>{{else}}<span class="text-kavach-accent">↓ {{.Stats.TriggersDelta}}</span>{{end}} vs yesterday
+        </p>
+    </div>
+    <!-- Unique Attackers -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+        <p class="text-[11px] uppercase tracking-wider text-gray-500 mb-2">Unique Attackers</p>
+        <p class="text-3xl font-bold font-mono text-blue-400">{{.Stats.UniqueAttackers}}</p>
+        <p class="text-xs text-gray-500 mt-1">
+            <span class="text-blue-400">{{.Stats.AttackersThisMonth}}</span> this month
+        </p>
+    </div>
+    <!-- Threat Level -->
+    <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
+        <p class="text-[11px] uppercase tracking-wider text-gray-500 mb-2">Threat Level</p>
+        <p class="text-3xl font-bold font-mono {{if eq .Stats.ThreatLevel "high"}}text-red-400{{else if eq .Stats.ThreatLevel "medium"}}text-amber-400{{else}}text-kavach-accent{{end}}">
+            {{.Stats.ThreatLevel | title}}
+        </p>
+        <p class="text-xs text-gray-500 mt-1">Based on 30-day activity</p>
+    </div>
+</div>
+
+<!-- Content Grid: Alerts + Attack Origins -->
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-6">
+    
+    <!-- Recent Alerts (3 cols) -->
+    <div class="lg:col-span-3 bg-kavach-darker border border-kavach-border rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-white flex items-center gap-2">
+                <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+                Recent Alerts
+            </h2>
+            {{if gt .Stats.CriticalAlerts 0}}
+            <span class="bg-red-500/15 text-red-400 text-[11px] font-medium px-2 py-0.5 rounded-full">{{.Stats.CriticalAlerts}} critical</span>
+            {{end}}
+        </div>
+
+        <!-- Alert list (HTMX auto-refresh every 30s) -->
+        <div id="alert-feed" hx-get="/api/v1/alerts/feed" hx-trigger="every 30s" hx-swap="innerHTML">
+            {{range .RecentAlerts}}
+            <div class="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-kavach-border mb-2 hover:border-kavach-accent/30 transition">
+                <!-- Icon based on severity -->
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                    {{if eq .Severity "critical"}}bg-red-500/15 text-red-400
+                    {{else if eq .Severity "warning"}}bg-amber-500/15 text-amber-400
+                    {{else}}bg-blue-500/15 text-blue-400{{end}}">
+                    {{if eq .TokenType "api_key"}}
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+                    {{else if eq .TokenType "document"}}
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+                    {{else if eq .TokenType "url"}}
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5z" clip-rule="evenodd"/></svg>
+                    {{else}}
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/></svg>
+                    {{end}}
+                </div>
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-200 truncate">{{.Title}}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">{{.IPAddress}} • {{.Location}} • {{.Browser}}</p>
+                </div>
+                <!-- Time -->
+                <span class="text-[11px] text-gray-600 whitespace-nowrap">{{.TimeAgo}}</span>
+            </div>
+            {{end}}
+
+            {{if not .RecentAlerts}}
+            <div class="text-center py-8 text-gray-500">
+                <svg class="w-10 h-10 mx-auto mb-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                <p class="text-sm">No alerts yet</p>
+                <p class="text-xs mt-1">Deploy some tokens and they'll appear here when triggered</p>
+            </div>
+            {{end}}
+        </div>
+
+        <a href="/alerts" class="block text-center text-xs text-kavach-accent hover:text-kavach-accent-hover mt-3 transition">View all alerts →</a>
+    </div>
+
+    <!-- Attack Origins (2 cols) -->
+    <div class="lg:col-span-2 bg-kavach-darker border border-kavach-border rounded-xl p-5">
+        <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+            <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/></svg>
+            Attack Origins
+        </h2>
+
+        <!-- Top countries -->
+        <div class="space-y-3">
+            {{range .TopCountries}}
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm">{{.Flag}}</span>
+                    <span class="text-sm text-gray-300">{{.Name}}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-24 h-1.5 bg-kavach-dark rounded-full overflow-hidden">
+                        <div class="h-full bg-kavach-accent/60 rounded-full" style="width: {{.Percentage}}%"></div>
+                    </div>
+                    <span class="text-xs text-gray-400 w-8 text-right">{{.Percentage}}%</span>
+                </div>
+            </div>
+            {{end}}
+        </div>
+
+        {{if not .TopCountries}}
+        <p class="text-sm text-gray-500 text-center py-4">No data yet</p>
+        {{end}}
+
+        <!-- Recent attacker IPs -->
+        <div class="mt-5 pt-4 border-t border-kavach-border">
+            <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-3">Recent Attacker IPs</p>
+            {{range .RecentIPs}}
+            <div class="flex items-center justify-between py-1.5">
+                <code class="text-xs font-mono text-gray-400">{{.IP}}</code>
+                <span class="text-[10px] text-gray-600">{{.TimeAgo}}</span>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Tokens -->
+<div class="bg-kavach-darker border border-kavach-border rounded-xl overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-kavach-border">
+        <h2 class="text-sm font-semibold text-white">Your Tokens</h2>
+        <a href="/tokens" class="text-xs text-kavach-accent hover:text-kavach-accent-hover transition">View all →</a>
+    </div>
+    <table class="w-full">
+        <thead>
+            <tr class="text-[11px] uppercase tracking-wider text-gray-500">
+                <th class="text-left px-5 py-3">Name</th>
+                <th class="text-left px-5 py-3">Type</th>
+                <th class="text-left px-5 py-3">Status</th>
+                <th class="text-left px-5 py-3">Triggers</th>
+                <th class="text-left px-5 py-3">Last Triggered</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .RecentTokens}}
+            <tr class="border-t border-kavach-border/50 hover:bg-white/[0.02] transition">
+                <td class="px-5 py-3 text-sm font-medium text-gray-200">{{.Name}}</td>
+                <td class="px-5 py-3">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium
+                        {{if eq .Type "url"}}bg-blue-500/15 text-blue-400
+                        {{else if eq .Type "document"}}bg-purple-500/15 text-purple-400
+                        {{else if eq .Type "api_key"}}bg-amber-500/15 text-amber-400
+                        {{else if eq .Type "dns"}}bg-kavach-accent/15 text-kavach-accent
+                        {{else}}bg-pink-500/15 text-pink-400{{end}}">
+                        {{.Type}}
+                    </span>
+                </td>
+                <td class="px-5 py-3">
+                    <span class="inline-flex items-center gap-1.5 text-xs">
+                        <span class="w-2 h-2 rounded-full {{if .IsTriggered}}bg-red-500 animate-pulse-dot{{else}}bg-kavach-accent{{end}}"></span>
+                        {{if .IsTriggered}}Triggered{{else}}Active{{end}}
+                    </span>
+                </td>
+                <td class="px-5 py-3 text-sm font-mono {{if gt .TriggerCount 5}}text-red-400 font-semibold{{else}}text-gray-400{{end}}">{{.TriggerCount}}</td>
+                <td class="px-5 py-3 text-xs text-gray-500">{{.LastTriggered}}</td>
+            </tr>
+            {{end}}
+
+            {{if not .RecentTokens}}
+            <tr>
+                <td colspan="5" class="px-5 py-8 text-center text-gray-500 text-sm">
+                    No tokens yet. <a href="/tokens/new" class="text-kavach-accent hover:underline">Create your first token →</a>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}
