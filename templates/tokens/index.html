@@ -8,22 +8,22 @@
 </div>
 
 <!-- Filters -->
-<div class="flex items-center gap-3 mb-4">
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg bg-kavach-accent/10 text-kavach-accent border border-kavach-accent/30">All</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">URL</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">Document</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">API Key</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">DNS</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">Email</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">QR Code</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">Cloned Site</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">Tracking Pixel</button>
-    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">AWS Key</button>
+<div id="token-filters" class="flex items-center gap-3 mb-4">
+    <button data-filter="all" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-kavach-accent/10 text-kavach-accent border border-kavach-accent/30 transition">All</button>
+    <button data-filter="url" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">URL</button>
+    <button data-filter="document" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">Document</button>
+    <button data-filter="api_key" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">API Key</button>
+    <button data-filter="dns" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">DNS</button>
+    <button data-filter="email" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">Email</button>
+    <button data-filter="qr_code" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">QR Code</button>
+    <button data-filter="cloned_site" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">Cloned Site</button>
+    <button data-filter="web_image" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">Tracking Pixel</button>
+    <button data-filter="aws_key" class="token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 border border-transparent transition">AWS Key</button>
 </div>
 
 <!-- Token Table -->
 <div class="bg-kavach-darker border border-kavach-border rounded-xl overflow-hidden">
-    <table class="w-full">
+    <table class="w-full" id="tokens-table">
         <thead>
             <tr class="text-[11px] uppercase tracking-wider text-gray-500 border-b border-kavach-border">
                 <th class="text-left px-5 py-3">Name</th>
@@ -37,7 +37,7 @@
         </thead>
         <tbody>
             {{range .Tokens}}
-            <tr class="border-t border-kavach-border/50 hover:bg-white/[0.02] transition">
+            <tr class="token-row border-t border-kavach-border/50 hover:bg-white/[0.02] transition-all duration-300" data-type="{{.Type}}" data-id="{{.ID}}">
                 <td class="px-5 py-3">
                     <div>
                         <p class="text-sm font-medium text-gray-200">{{.Name}}</p>
@@ -70,10 +70,10 @@
                 <td class="px-5 py-3 text-xs text-gray-500">{{.CreatedAt}}</td>
                 <td class="px-5 py-3">
                     <div class="flex items-center gap-2">
-                        <button onclick="copyToClipboard(this, '{{.Payload}}')" class="text-gray-400 hover:text-kavach-accent transition" title="Copy payload">
+                        <button onclick="copyToClipboard(this, '{{.Payload}}')" class="text-gray-400 hover:text-kavach-accent transition" title="Copy payload" data-payload="{{.Payload}}">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
                         </button>
-                        <button class="text-gray-400 hover:text-red-400 transition" title="Deactivate">
+                        <button onclick="deleteToken(this)" class="text-gray-400 hover:text-red-400 transition" title="Delete token" hx-delete="/api/v1/tokens/{{.ID}}" hx-confirm="Are you sure you want to delete this token?" hx-target="closest tr" hx-swap="delete">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z" clip-rule="evenodd"/></svg>
                         </button>
                     </div>

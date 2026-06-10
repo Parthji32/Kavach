@@ -128,4 +128,71 @@
     });
 
     console.log('[Kavach] Client initialized');
+
+    // ===== TOKEN FILTER LOGIC =====
+    function initTokenFilters() {
+        var filterContainer = document.getElementById('token-filters');
+        if (!filterContainer) return;
+
+        var buttons = filterContainer.querySelectorAll('.token-filter-btn');
+        var activeClass = 'bg-kavach-accent/10 text-kavach-accent border-kavach-accent/30';
+        var inactiveClass = 'text-gray-400 border-transparent';
+
+        buttons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var filter = btn.getAttribute('data-filter');
+
+                // Update active button styles
+                buttons.forEach(function(b) {
+                    b.className = 'token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg border transition hover:text-white hover:bg-white/5 ' + inactiveClass;
+                });
+                btn.className = 'token-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg border transition ' + activeClass;
+
+                // Filter rows
+                var rows = document.querySelectorAll('.token-row');
+                rows.forEach(function(row) {
+                    var rowType = row.getAttribute('data-type');
+                    if (filter === 'all' || rowType === filter) {
+                        row.style.opacity = '1';
+                        row.style.maxHeight = '200px';
+                        row.style.overflow = 'visible';
+                        row.style.display = '';
+                    } else {
+                        row.style.opacity = '0';
+                        row.style.maxHeight = '0';
+                        row.style.overflow = 'hidden';
+                        setTimeout(function() {
+                            if (row.style.opacity === '0') {
+                                row.style.display = 'none';
+                            }
+                        }, 200);
+                    }
+                });
+            });
+        });
+    }
+
+    // ===== TOKEN DELETE HANDLER (demo mode) =====
+    window.deleteToken = function(btn) {
+        if (!confirm('Are you sure you want to delete this token?')) return;
+
+        var row = btn.closest('tr');
+        if (!row) return;
+
+        // Fade out and remove
+        row.style.transition = 'opacity 0.3s, transform 0.3s';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+        setTimeout(function() {
+            row.remove();
+        }, 300);
+    };
+
+    // Initialize on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTokenFilters);
+    } else {
+        initTokenFilters();
+    }
+
 })();
