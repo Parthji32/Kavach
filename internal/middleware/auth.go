@@ -22,25 +22,25 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-// jwtSecret is initialized once at package load time
-var jwtSecret string
+// signingKey is initialized once at package load time
+var signingKey string
 
 func init() {
-	jwtSecret = os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		// Generate a random secret at startup
-		bytes := make([]byte, 32)
-		if _, err := rand.Read(bytes); err != nil {
-			log.Fatal("CRITICAL: Failed to generate random JWT secret")
+	signingKey = os.Getenv("JWT_SECRET")
+	if signingKey == "" {
+		// Generate a random signing key at startup
+		randomBytes := make([]byte, 32)
+		if _, err := rand.Read(randomBytes); err != nil {
+			log.Fatal("CRITICAL: Failed to generate random signing key")
 		}
-		jwtSecret = hex.EncodeToString(bytes)
-		log.Println("⚠️  WARNING: JWT_SECRET not set. Generated a random secret for this session.")
+		signingKey = hex.EncodeToString(randomBytes)
+		log.Println("WARNING: JWT_SECRET not set. Generated a random key for this session.")
 		log.Println("   JWTs will be invalid after restart. Set JWT_SECRET in .env for persistence.")
 	}
 }
 
-func getJWTSecret() string {
-	return jwtSecret
+func getSigningKey() string {
+	return signingKey
 }
 
 // GenerateToken creates a new JWT token for a user
@@ -57,7 +57,7 @@ func GenerateToken(userID uuid.UUID, email, plan string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(getJWTSecret()))
+	return token.SignedString([]byte(getSigningKey()))
 }
 
 // AuthRequired is middleware that validates JWT tokens on protected routes
@@ -80,7 +80,7 @@ func AuthRequired() fiber.Handler {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(getJWTSecret()), nil
+			return []byte(getSigningKey()), nil
 		})
 
 		if err != nil || !token.Valid {
