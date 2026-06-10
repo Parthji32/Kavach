@@ -58,5 +58,30 @@
         }
     });
 
+    // Notification dropdown toggle
+    window.toggleNotifications = function() {
+        var menu = document.getElementById('notification-menu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    };
+
+    // Close notification dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        var wrapper = document.getElementById('notification-wrapper');
+        var menu = document.getElementById('notification-menu');
+        if (wrapper && menu && !wrapper.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
+    // Close notification dropdown on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var menu = document.getElementById('notification-menu');
+            if (menu) menu.classList.add('hidden');
+        }
+    });
+
     console.log('[Kavach] Client initialized');
 })();
