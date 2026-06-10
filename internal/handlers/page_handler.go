@@ -182,6 +182,10 @@ func (h *PageHandler) Dashboard(c *fiber.Ctx) error {
 			{ID: "2", Name: "financials_2026.pdf", Type: "document", IsTriggered: true, TriggerCount: 3, LastTriggered: "18 min ago"},
 			{ID: "3", Name: "internal-wiki-backup", Type: "url", IsTriggered: false, TriggerCount: 5, LastTriggered: "1 hr ago"},
 			{ID: "4", Name: "staging-api.internal", Type: "dns", IsTriggered: false, TriggerCount: 1, LastTriggered: "3 hrs ago"},
+			{ID: "5", Name: "server-room-access-qr", Type: "qr_code", IsTriggered: true, TriggerCount: 2, LastTriggered: "45 min ago"},
+			{ID: "6", Name: "marketing-site-clone-detect", Type: "cloned_site", IsTriggered: false, TriggerCount: 0, LastTriggered: "Never"},
+			{ID: "7", Name: "newsletter-tracking-pixel", Type: "web_image", IsTriggered: true, TriggerCount: 8, LastTriggered: "5 min ago"},
+			{ID: "8", Name: "dev-aws-creds-honeypot", Type: "aws_key", IsTriggered: false, TriggerCount: 1, LastTriggered: "2 hrs ago"},
 		},
 	}
 
@@ -206,6 +210,10 @@ func (h *PageHandler) TokensList(c *fiber.Ctx) error {
 			{ID: "4", Name: "staging-api.internal", Type: "dns", IsTriggered: false, TriggerCount: 1, LastTriggered: "3 hrs ago", Payload: "staging-api.t.kavach.dev", Description: "Fake DNS entry in hosts file", CreatedAt: "May 20, 2026", IsActive: true},
 			{ID: "5", Name: "admin-creds-backup", Type: "api_key", IsTriggered: false, TriggerCount: 0, LastTriggered: "Never", Payload: "kv_live_x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4", Description: "Planted in password manager export", CreatedAt: "Jun 5, 2026", IsActive: true},
 			{ID: "6", Name: "hr-contact@trap.kavach.dev", Type: "email", IsTriggered: false, TriggerCount: 0, LastTriggered: "Never", Payload: "hr-contact@trap.kavach.dev", Description: "Fake HR email in company directory", CreatedAt: "Jun 8, 2026", IsActive: true},
+			{ID: "7", Name: "office-wifi-qr", Type: "qr_code", IsTriggered: true, TriggerCount: 2, LastTriggered: "4 hrs ago", Payload: "data:image/png;base64,iVBORw0KGgo...", Description: "QR code posted in break room", CreatedAt: "Jun 9, 2026", IsActive: true},
+			{ID: "8", Name: "company-login-page", Type: "cloned_site", IsTriggered: true, TriggerCount: 1, LastTriggered: "6 hrs ago", Payload: "<script>/* clone detection */</script>", Description: "Clone detection on login.company.com", CreatedAt: "Jun 7, 2026", IsActive: true},
+			{ID: "9", Name: "newsletter-tracker", Type: "web_image", IsTriggered: false, TriggerCount: 8, LastTriggered: "1 hr ago", Payload: "https://t.kavach.dev/t/px9876/pixel", Description: "Tracking pixel in leaked email template", CreatedAt: "Jun 3, 2026", IsActive: true},
+			{ID: "10", Name: "s3-backup-creds", Type: "aws_key", IsTriggered: true, TriggerCount: 3, LastTriggered: "30 min ago", Payload: "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", Description: "Fake AWS keys in .env on honeypot server", CreatedAt: "Jun 6, 2026", IsActive: true},
 		},
 	}
 

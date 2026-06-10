@@ -3,6 +3,8 @@ package services
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/base64"
+	"math/big"
 	"fmt"
 	"strings"
 	"time"
@@ -67,6 +69,31 @@ func (s *TokenService) GenerateToken(userID uuid.UUID, req models.CreateTokenReq
 		token.TriggerURL = fmt.Sprintf("%s/t/%s/email", s.BaseURL, triggerID)
 		token.Payload = fmt.Sprintf("%s@trap.kavach.dev", triggerID)
 
+	case models.TokenTypeQRCode:
+		token.TriggerURL = fmt.Sprintf("%s/t/%s/qr", s.BaseURL, triggerID)
+		// Generate QR code as base64 PNG data URI
+		qrDataURI, err := GenerateQRCode(token.TriggerURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate QR code: %w", err)
+		}
+		token.Payload = qrDataURI
+
+	case models.TokenTypeClonedSite:
+		token.TriggerURL = fmt.Sprintf("%s/t/%s/clone", s.BaseURL, triggerID)
+		domain := req.Domain
+		if domain == "" {
+			domain = "example.com"
+		}
+		token.Payload = generateClonedSiteJS(domain, token.TriggerURL)
+
+	case models.TokenTypeWebImage:
+		token.TriggerURL = fmt.Sprintf("%s/t/%s/pixel", s.BaseURL, triggerID)
+		token.Payload = token.TriggerURL
+
+	case models.TokenTypeAWSKey:
+		token.TriggerURL = fmt.Sprintf("%s/t/%s/aws", s.BaseURL, triggerID)
+		token.Payload = generateFakeAWSKeys()
+
 	default:
 		return nil, fmt.Errorf("unsupported token type: %s", req.Type)
 	}
@@ -90,6 +117,53 @@ func generateFakeAPIKey() string {
 	bytes := make([]byte, 16)
 	rand.Read(bytes)
 	return fmt.Sprintf("kv_live_%s", hex.EncodeToString(bytes))
+}
+
+// generateFakeAWSKeys creates a realistic-looking AWS access key pair
+// Access Key: AKIA + 16 uppercase alphanumeric characters
+// Secret Key: 40 character base64-like string
+func generateFakeAWSKeys() string {
+	const alphaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	// Generate Access Key ID: AKIA + 16 chars
+	accessKey := "AKIA"
+	for i := 0; i < 16; i++ {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(alphaNum))))
+		accessKey += string(alphaNum[n.Int64()])
+	}
+
+	// Generate Secret Access Key: 40 bytes base64-encoded (trimmed to 40 chars)
+	secretBytes := make([]byte, 30)
+	rand.Read(secretBytes)
+	secretKey := base64.StdEncoding.EncodeToString(secretBytes)[:40]
+
+	return fmt.Sprintf("AWS_ACCESS_KEY_ID=%s\nAWS_SECRET_ACCESS_KEY=%s", accessKey, secretKey)
+}
+
+// generateClonedSiteJS generates a JavaScript snippet for cloned website detection
+func generateClonedSiteJS(legitimateDomain, triggerURL string) string {
+	return fmt.Sprintf(`<script>
+(function() {
+  var legitimate = %q;
+  var currentHost = window.location.hostname;
+  if (currentHost !== legitimate && currentHost !== "www." + legitimate) {
+    var data = {
+      cloned_url: window.location.href,
+      referrer: document.referrer,
+      timestamp: new Date().toISOString(),
+      screen: screen.width + "x" + screen.height,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language: navigator.language
+    };
+    var img = new Image();
+    img.src = %q + "?d=" + encodeURIComponent(JSON.stringify(data));
+    // Also try beacon API for reliability
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(%q, JSON.stringify(data));
+    }
+  }
+})();
+</script>`, legitimateDomain, triggerURL, triggerURL)
 }
 
 // ValidateToken checks if a token exists and is active

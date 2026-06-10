@@ -83,5 +83,49 @@
         }
     });
 
+    // QR Code display handler
+    // When a QR token is created, render the QR image from the payload
+    window.renderQRCodePayload = function(containerEl, payload) {
+        if (!containerEl || !payload) return;
+
+        if (payload.startsWith('data:image')) {
+            var img = document.createElement('img');
+            img.src = payload;
+            img.alt = 'QR Code Token';
+            img.className = 'w-48 h-48 rounded-lg border border-kavach-border bg-white p-2 mx-auto';
+            containerEl.innerHTML = '';
+            containerEl.appendChild(img);
+        }
+    };
+
+    // Generic base64 image renderer
+    // Checks if a token payload is a base64 image and renders it inline
+    window.renderBase64Image = function(containerEl, payload, options) {
+        if (!containerEl || !payload) return false;
+
+        if (!payload.startsWith('data:image')) return false;
+
+        var opts = options || {};
+        var img = document.createElement('img');
+        img.src = payload;
+        img.alt = opts.alt || 'Token Image';
+        img.className = opts.className || 'max-w-full rounded-lg border border-kavach-border bg-white p-2';
+
+        if (opts.replace) {
+            containerEl.innerHTML = '';
+        }
+        containerEl.appendChild(img);
+        return true;
+    };
+
+    // After HTMX swap, check if any token payload is a base64 image and render it
+    document.addEventListener('htmx:afterSwap', function(event) {
+        var payloadEls = event.detail.target.querySelectorAll('[data-token-payload]');
+        payloadEls.forEach(function(el) {
+            var payload = el.getAttribute('data-token-payload');
+            window.renderBase64Image(el, payload, { replace: true, alt: 'Token QR Code' });
+        });
+    });
+
     console.log('[Kavach] Client initialized');
 })();

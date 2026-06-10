@@ -15,6 +15,10 @@ const (
 	TokenTypeAPIKey   TokenType = "api_key"
 	TokenTypeDNS      TokenType = "dns"
 	TokenTypeEmail    TokenType = "email"
+	TokenTypeQRCode     TokenType = "qr_code"
+	TokenTypeClonedSite TokenType = "cloned_site"
+	TokenTypeWebImage   TokenType = "web_image"
+	TokenTypeAWSKey     TokenType = "aws_key"
 )
 
 // Token represents a canary token deployed by a user
@@ -37,8 +41,9 @@ type Token struct {
 // CreateTokenRequest is the request payload to create a new token
 type CreateTokenRequest struct {
 	Name        string    `json:"name" validate:"required,min=1,max=100"`
-	Type        TokenType `json:"type" validate:"required,oneof=url document api_key dns email"`
+	Type        TokenType `json:"type" validate:"required,oneof=url document api_key dns email qr_code cloned_site web_image aws_key"`
 	Description string    `json:"description" validate:"max=500"`
+	Domain      string    `json:"domain,omitempty"` // Used by cloned_site type
 }
 
 // TokenResponse is the API response for a token

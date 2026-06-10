@@ -15,6 +15,10 @@
     <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">API Key</button>
     <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">DNS</button>
     <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">Email</button>
+    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">QR Code</button>
+    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">Cloned Site</button>
+    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">Tracking Pixel</button>
+    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition">AWS Key</button>
 </div>
 
 <!-- Token Table -->
@@ -46,7 +50,12 @@
                         {{else if eq .Type "document"}}bg-purple-500/15 text-purple-400
                         {{else if eq .Type "api_key"}}bg-amber-500/15 text-amber-400
                         {{else if eq .Type "dns"}}bg-kavach-accent/15 text-kavach-accent
-                        {{else}}bg-pink-500/15 text-pink-400{{end}}">
+                        {{else if eq .Type "email"}}bg-pink-500/15 text-pink-400
+                        {{else if eq .Type "qr_code"}}bg-teal-500/15 text-teal-400
+                        {{else if eq .Type "cloned_site"}}bg-indigo-500/15 text-indigo-400
+                        {{else if eq .Type "web_image"}}bg-rose-500/15 text-rose-400
+                        {{else if eq .Type "aws_key"}}bg-orange-500/15 text-orange-400
+                        {{else}}bg-gray-500/15 text-gray-400{{end}}">
                         {{.Type}}
                     </span>
                 </td>

@@ -18,6 +18,9 @@ import (
 	"github.com/parthjindal/kavach/internal/database"
 	"github.com/parthjindal/kavach/internal/handlers"
 	"github.com/parthjindal/kavach/internal/middleware"
+	"github.com/parthjindal/kavach/internal/models"
+	"github.com/parthjindal/kavach/internal/services"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -395,13 +398,14 @@ func handleAlertFeed(c *fiber.Ctx) error {
 }
 
 // handleTokenCreate handles POST /api/v1/tokens
-// Returns HTML partial for HTMX requests, JSON for API requests (fix MEDIUM issue #7)
+// Returns HTML partial for HTMX requests, JSON for API requests
 func handleTokenCreate(c *fiber.Ctx) error {
 	// Parse token creation request
 	type tokenReq struct {
 		Name        string `json:"name" form:"name"`
 		Type        string `json:"type" form:"type"`
 		Description string `json:"description" form:"description"`
+		Domain      string `json:"domain" form:"domain"`
 	}
 
 	var req tokenReq
@@ -419,21 +423,26 @@ func handleTokenCreate(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "name and type are required"})
 	}
 
-	// Generate a demo payload based on type
-	payload := ""
-	switch req.Type {
-	case "url":
-		payload = "https://t.kavach.dev/t/demo_" + req.Name
-	case "document":
-		payload = "https://t.kavach.dev/t/demo_" + req.Name + "/doc"
-	case "api_key":
-		payload = "kv_live_demo_" + req.Name + "_a3f9c2b1d4e5f6a7"
-	case "dns":
-		payload = "demo-" + req.Name + ".t.kavach.dev"
-	case "email":
-		payload = req.Name + "@trap.kavach.dev"
-	default:
-		payload = "https://t.kavach.dev/t/demo_" + req.Name
+	// Use the real token service to generate the token
+	baseURL := os.Getenv("TRIGGER_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	tokenSvc := services.NewTokenService(baseURL)
+
+	createReq := models.CreateTokenRequest{
+		Name:        req.Name,
+		Type:        models.TokenType(req.Type),
+		Description: req.Description,
+		Domain:      req.Domain,
+	}
+
+	generatedToken, err := tokenSvc.GenerateToken(uuid.New(), createReq)
+	if err != nil {
+		if c.Get("HX-Request") == "true" {
+			return c.SendString(`<div class="text-red-400 text-sm p-3">Failed to generate token: ` + err.Error() + `</div>`)
+		}
+		return c.Status(500).JSON(fiber.Map{"error": "failed to generate token", "details": err.Error()})
 	}
 
 	// Check if request is from HTMX — return HTML partial
@@ -447,22 +456,22 @@ func handleTokenCreate(c *fiber.Ctx) error {
 			Token tokenData
 		}{
 			Token: tokenData{
-				Name:    req.Name,
-				Type:    req.Type,
-				Payload: payload,
+				Name:    generatedToken.Name,
+				Type:    string(generatedToken.Type),
+				Payload: generatedToken.Payload,
 			},
 		}
 
 		tmpl, err := template.ParseFiles("./templates/tokens/token_created.html")
 		if err != nil {
 			log.Printf("Token created template error: %v", err)
-			return c.SendString(`<div class="text-kavach-accent text-sm p-3">✅ Token created: ` + req.Name + ` (` + payload + `)</div>`)
+			return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-xl p-5"><p class="text-kavach-accent font-semibold mb-2">Token Created!</p><p class="text-sm text-gray-300">Name: ` + generatedToken.Name + `</p><p class="text-sm text-gray-300 mt-1">Type: ` + string(generatedToken.Type) + `</p><pre class="mt-2 text-xs text-kavach-accent bg-kavach-dark border border-kavach-border rounded-lg p-3 overflow-x-auto">` + generatedToken.Payload + `</pre></div>`)
 		}
 
 		var buf bytes.Buffer
 		if err := tmpl.Execute(&buf, data); err != nil {
 			log.Printf("Token created template render error: %v", err)
-			return c.SendString(`<div class="text-kavach-accent text-sm p-3">✅ Token created: ` + req.Name + ` (` + payload + `)</div>`)
+			return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-xl p-5"><p class="text-kavach-accent font-semibold mb-2">Token Created!</p><p class="text-sm text-gray-300">Name: ` + generatedToken.Name + `</p><p class="text-sm text-gray-300 mt-1">Type: ` + string(generatedToken.Type) + `</p><pre class="mt-2 text-xs text-kavach-accent bg-kavach-dark border border-kavach-border rounded-lg p-3 overflow-x-auto">` + generatedToken.Payload + `</pre></div>`)
 		}
 
 		c.Set("Content-Type", "text/html; charset=utf-8")
@@ -471,11 +480,14 @@ func handleTokenCreate(c *fiber.Ctx) error {
 
 	// Default: return JSON for API consumers
 	return c.Status(201).JSON(fiber.Map{
-		"message": "token created (demo mode)",
+		"message": "token created",
 		"token": fiber.Map{
-			"name":    req.Name,
-			"type":    req.Type,
-			"payload": payload,
+			"id":          generatedToken.ID,
+			"name":        generatedToken.Name,
+			"type":        generatedToken.Type,
+			"payload":     generatedToken.Payload,
+			"trigger_url": generatedToken.TriggerURL,
+			"created_at":  generatedToken.CreatedAt,
 		},
 	})
 }

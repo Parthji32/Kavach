@@ -177,6 +177,31 @@ func (h *TriggerHandler) HandleTrigger(c *fiber.Ctx) error {
 		// Email token confirmation
 		return c.Status(200).SendString("OK")
 
+	case "qr":
+		// QR code token — same as URL (capture fingerprint, return 404)
+		return c.Status(404).JSON(fiber.Map{
+			"error":   "not_found",
+			"message": "The requested resource could not be found.",
+		})
+
+	case "clone":
+		// Cloned website detection — accept beacon POST/GET from JS snippet
+		log.Printf("🚨 CLONED SITE DETECTED: data=%s", c.Body())
+		return c.Status(204).SendString("")
+
+	case "pixel":
+		// Web image / tracking pixel — return 1x1 transparent GIF
+		return c.Status(200).
+			Type("image/gif").
+			Send(transparentGIF())
+
+	case "aws":
+		// AWS API key token — return realistic AWS error JSON
+		return c.Status(403).JSON(fiber.Map{
+			"__type":  "InvalidClientTokenId",
+			"message": "The security token included in the request is invalid.",
+		})
+
 	default:
 		// URL token — serve a realistic-looking page or redirect
 		return c.Status(404).JSON(fiber.Map{

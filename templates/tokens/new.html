@@ -84,7 +84,65 @@
                         <p class="text-xs text-gray-500">Fake email address that alerts on receive</p>
                     </div>
                 </label>
+
+                <!-- QR Code Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="qr_code" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-teal-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 1v1h1V5H5zm-2 7a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 1v1h1v-1H5zm7-9a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2v1h1V5h-1zm-1 7a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-3zm2 1v1h1v-1h-1z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-medium text-gray-200">QR Code</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Generates a scannable QR code that alerts when scanned</p>
+                    </div>
+                </label>
+
+                <!-- Cloned Website Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="cloned_site" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.497-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-medium text-gray-200">Cloned Website</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Detects when someone clones your website</p>
+                    </div>
+                </label>
+
+                <!-- Tracking Pixel Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="web_image" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-rose-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                            <span class="text-sm font-medium text-gray-200">Tracking Pixel</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Invisible image that tracks when loaded in emails or pages</p>
+                    </div>
+                </label>
+
+                <!-- AWS Key Token -->
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="type" value="aws_key" class="peer sr-only">
+                    <div class="border border-kavach-border rounded-lg p-4 hover:border-kavach-accent/50 peer-checked:border-kavach-accent peer-checked:bg-kavach-accent/5 transition">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-orange-400" fill="currentColor" viewBox="0 0 20 20"><path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/></svg>
+                            <span class="text-sm font-medium text-gray-200">AWS Key</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Fake AWS credentials that alert when used</p>
+                    </div>
+                </label>
+
             </div>
+        </div>
+
+        <!-- Domain field (shown for cloned_site type) -->
+        <div id="domain-field" class="hidden">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Legitimate Domain</label>
+            <input type="text" name="domain"
+                placeholder="e.g., yourcompany.com"
+                class="w-full bg-kavach-dark border border-kavach-border rounded-lg px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-kavach-accent focus:ring-1 focus:ring-kavach-accent/50 outline-none transition">
+            <p class="text-xs text-gray-500 mt-1">The domain you own — the JS will alert if loaded from any other domain</p>
         </div>
 
         <!-- Description -->
@@ -108,4 +166,14 @@
     <!-- Result (HTMX replaces this) -->
     <div id="result" class="mt-6"></div>
 </div>
+
+<script>
+// Show/hide domain field based on token type selection
+document.querySelectorAll('input[name="type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const domainField = document.getElementById('domain-field');
+        domainField.classList.toggle('hidden', this.value !== 'cloned_site');
+    });
+});
+</script>
 {{end}}

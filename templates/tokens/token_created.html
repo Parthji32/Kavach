@@ -17,7 +17,12 @@
                 {{else if eq .Token.Type "document"}}bg-purple-500/15 text-purple-400
                 {{else if eq .Token.Type "api_key"}}bg-amber-500/15 text-amber-400
                 {{else if eq .Token.Type "dns"}}bg-kavach-accent/15 text-kavach-accent
-                {{else}}bg-pink-500/15 text-pink-400{{end}}">
+                {{else if eq .Token.Type "email"}}bg-pink-500/15 text-pink-400
+                {{else if eq .Token.Type "qr_code"}}bg-teal-500/15 text-teal-400
+                {{else if eq .Token.Type "cloned_site"}}bg-indigo-500/15 text-indigo-400
+                {{else if eq .Token.Type "web_image"}}bg-rose-500/15 text-rose-400
+                {{else if eq .Token.Type "aws_key"}}bg-orange-500/15 text-orange-400
+                {{else}}bg-gray-500/15 text-gray-400{{end}}">
                 {{.Token.Type}}
             </span>
         </div>
@@ -41,7 +46,12 @@
             {{else if eq .Token.Type "api_key"}}Store this fake key in a .env file, a config file, or a private repo. If anyone uses it, you'll know immediately.
             {{else if eq .Token.Type "document"}}Place this document in a location that looks valuable — a shared drive, a "confidential" folder, or a backup directory.
             {{else if eq .Token.Type "dns"}}Add this hostname to internal documentation or config files. Any DNS resolution attempt will trigger an alert.
-            {{else}}Use this email in internal documents or decoy contact lists. Any email sent to it will trigger an alert.
+            {{else if eq .Token.Type "email"}}Use this email in internal documents or decoy contact lists. Any email sent to it will trigger an alert.
+            {{else if eq .Token.Type "qr_code"}}Print this QR code and place it in restricted areas, or embed it in internal documents.
+            {{else if eq .Token.Type "cloned_site"}}Add this JavaScript snippet to your website's HTML. It will alert you if anyone creates a copy.
+            {{else if eq .Token.Type "web_image"}}Embed this image URL in emails, forum posts, or documents. It's invisible but tracks when loaded.
+            {{else if eq .Token.Type "aws_key"}}Store these fake credentials in .env files, config files, or code repos. Any attempt to use them triggers an alert.
+            {{else}}Deploy this token in a location where unauthorized access would indicate a breach.
             {{end}}
         </p>
     </div>
