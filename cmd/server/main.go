@@ -121,10 +121,11 @@ func main() {
 	// ===== REST API =====
 	api := app.Group("/api/v1")
 
-	// Apply auth middleware to protected API routes when DB is connected (fix HIGH issue #13)
-	if db != nil {
-		api.Use(middleware.AuthRequired())
-	}
+	// NOTE: Auth middleware disabled for now — access gate (KAVACH_ACCESS_KEY) provides security.
+	// TODO: Re-enable after login/signup flow is working for users.
+	// if db != nil {
+	// 	api.Use(middleware.AuthRequired())
+	// }
 
 	api.Get("/tokens", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"tokens": []interface{}{}, "message": "Connect database to see real tokens"})
