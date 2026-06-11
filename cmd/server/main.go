@@ -88,7 +88,13 @@ func main() {
 	app.Use(accessGate())
 
 	// ===== HTML PAGE ROUTES =====
-	app.Get("/", pageHandler.Dashboard)
+	// Landing page (public - served from static file)
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendFile("./static/landing.html")
+	})
+
+	// Dashboard (requires access key)
+	app.Get("/app", pageHandler.Dashboard)
 	app.Get("/login", pageHandler.LoginPage)
 	app.Get("/signup", pageHandler.SignupPage)
 	app.Get("/tokens", pageHandler.TokensList)
@@ -381,6 +387,11 @@ func accessGate() fiber.Handler {
 		// Trigger routes are ALWAYS public (honeypot endpoints)
 		path := c.Path()
 		if strings.HasPrefix(path, "/t/") {
+			return c.Next()
+		}
+
+		// Landing page is always public
+		if path == "/" {
 			return c.Next()
 		}
 
