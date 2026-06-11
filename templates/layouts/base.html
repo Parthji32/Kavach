@@ -13,11 +13,13 @@
                 extend: {
                     colors: {
                         kavach: {
-                            dark: '#0A1628',
-                            darker: '#0F1D32',
-                            accent: '#00D4AA',
-                            'accent-hover': '#00E8BB',
-                            border: '#1E3A5F',
+                            dark: '#0A0A14',
+                            darker: '#0D0B1A',
+                            surface: '#12101F',
+                            accent: '#7C3AED',
+                            'accent-hover': '#8B5CF6',
+                            cyan: '#06B6D4',
+                            border: '#1E1A30',
                         }
                     }
                 }
@@ -30,13 +32,50 @@
 
     <!-- Custom styles -->
     <style>
-        body { background-color: #0A1628; }
-        .nav-item.active { border-right: 2px solid #00D4AA; background: rgba(0, 212, 170, 0.08); color: #00D4AA; }
-        .nav-item:hover { background: rgba(255, 255, 255, 0.03); color: #E2E8F0; }
+        body { background-color: #0A0A14; }
+        .nav-item.active { 
+            border-right: 2px solid #7C3AED; 
+            background: rgba(124, 58, 237, 0.08); 
+            color: #C084FC; 
+        }
+        .nav-item:hover { background: rgba(124, 58, 237, 0.04); color: #E2E8F0; }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .animate-pulse-dot { animation: pulse-dot 2s infinite; }
         .htmx-indicator { display: none; }
         .htmx-request .htmx-indicator { display: inline-block; }
+        /* Gradient text utility */
+        .gradient-text { 
+            background: linear-gradient(135deg, #7C3AED, #06B6D4); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        /* Cards */
+        .kavach-card {
+            background: #0D0B1A;
+            border: 1px solid rgba(124, 58, 237, 0.08);
+            border-radius: 12px;
+        }
+        .kavach-card:hover {
+            border-color: rgba(124, 58, 237, 0.15);
+        }
+        /* Buttons */
+        .btn-kavach {
+            background: linear-gradient(135deg, #7C3AED, #06B6D4);
+            color: #fff;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 8px 20px;
+            transition: all 0.2s;
+        }
+        .btn-kavach:hover {
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25);
+            transform: translateY(-1px);
+        }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0A0A14; }
+        ::-webkit-scrollbar-thumb { background: #1E1A30; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2A2540; }
     </style>
 </head>
 <body class="text-gray-300 min-h-screen flex">
@@ -45,7 +84,7 @@
     <aside class="w-56 bg-kavach-darker border-r border-kavach-border flex flex-col fixed h-full">
         <!-- Logo -->
         <div class="px-5 py-5 border-b border-kavach-border">
-            <h1 class="text-xl font-bold text-kavach-accent tracking-tight">Kavach</h1>
+            <h1 class="text-xl font-bold gradient-text tracking-tight">⬡ Kavach</h1>
             <p class="text-xs text-gray-500 mt-0.5">Armor that fights back</p>
         </div>
 
@@ -87,7 +126,7 @@
         <!-- User info -->
         <div class="px-5 py-4 border-t border-kavach-border">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-kavach-accent/20 flex items-center justify-center text-kavach-accent text-xs font-bold">PJ</div>
+                <div class="w-8 h-8 rounded-full bg-kavach-accent/20 flex items-center justify-center text-purple-400 text-xs font-bold">PJ</div>
                 <div>
                     <p class="text-sm text-gray-300 font-medium">Parth Jindal</p>
                     <p class="text-[10px] text-gray-500">Free Plan</p>
