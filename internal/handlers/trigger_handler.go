@@ -257,3 +257,75 @@ func transparentGIF() []byte {
 		0x3b,                               // Trailer
 	}
 }
+
+// HandleDemoTrigger processes the landing page demo trigger.
+// It captures a real fingerprint and returns JSON so the landing page
+// can display actual server-side intelligence to the visitor.
+//
+// Route: GET /t/demo
+func (h *TriggerHandler) HandleDemoTrigger(c *fiber.Ctx) error {
+	log.Printf("🎯 DEMO TRIGGER from %s", c.IP())
+
+	// 1. Capture the fingerprint from the request
+	fp := captureFromFiber(c)
+
+	// 2. Enrich with geo data
+	geo, err := h.geoService.Lookup(fp.IPAddress)
+	if err != nil {
+		log.Printf("⚠️  Demo geo lookup failed for %s: %v", fp.IPAddress, err)
+	} else if geo != nil {
+		fp.Country = geo.Country
+		fp.City = geo.City
+		fp.Region = geo.Region
+		fp.ISP = geo.ISP
+		fp.ASN = geo.ASN
+		fp.IsVPN = geo.IsVPN
+		fp.IsTor = geo.IsTor
+		fp.IsProxy = geo.IsProxy
+	}
+
+	// Parse browser/OS from user agent
+	fp.Browser, fp.BrowserVer = fingerprint.ParseUserAgentBrowser(fp.UserAgent)
+	fp.OS, fp.OSVersion = fingerprint.ParseUserAgentOS(fp.UserAgent)
+
+	// Generate unique hash
+	fp.UniqueHash = fp.GenerateHash()
+
+	// 3. Partially redact IP for privacy (show first two octets)
+	redactedIP := redactIP(fp.IPAddress)
+
+	// 4. Return JSON response for the landing page
+	return c.JSON(fiber.Map{
+		"ip":          redactedIP,
+		"ip_full":     fp.IPAddress, // full IP — shows capability (visitor's own data)
+		"city":        fp.City,
+		"region":      fp.Region,
+		"country":     fp.Country,
+		"isp":         fp.ISP,
+		"asn":         fp.ASN,
+		"browser":     fp.Browser,
+		"browser_ver": fp.BrowserVer,
+		"os":          fp.OS,
+		"os_ver":      fp.OSVersion,
+		"is_vpn":      fp.IsVPN,
+		"is_tor":      fp.IsTor,
+		"is_proxy":    fp.IsProxy,
+		"fingerprint": fp.UniqueHash,
+		"tls_version": fp.TLSVersion,
+		"accept_lang": fp.AcceptLang,
+		"captured_at": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// redactIP partially masks an IP address for display (e.g., "103.45.●●.●●")
+func redactIP(ip string) string {
+	parts := strings.Split(ip, ".")
+	if len(parts) == 4 {
+		return parts[0] + "." + parts[1] + ".●●.●●"
+	}
+	// IPv6 or unusual format — just mask the last half
+	if len(ip) > 8 {
+		return ip[:len(ip)/2] + "●●●●"
+	}
+	return "●●●.●●.●●●.●●"
+}

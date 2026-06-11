@@ -129,6 +129,26 @@ func main() {
 
 	// ===== TOKEN TRIGGER ROUTES (PUBLIC) =====
 	trigger := app.Group("/t")
+	// Demo trigger: rate-limited, returns JSON for landing page interactive demo
+	trigger.Get("/demo", limiter.New(limiter.Config{
+		Max:        3,
+		Expiration: 1 * time.Hour,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return "demo:" + c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			ip := c.IP()
+			redacted := "●●●"
+			if len(ip) > 4 {
+				redacted = ip[:len(ip)/2] + "●●●"
+			}
+			return c.Status(429).JSON(fiber.Map{
+				"error":   "rate_limited",
+				"message": "Demo limit reached. Sign up for unlimited tokens.",
+				"ip":      redacted,
+			})
+		},
+	}), triggerHandler.HandleDemoTrigger)
 	trigger.Get("/:triggerID", triggerHandler.HandleTrigger)
 	trigger.Get("/:triggerID/:type", triggerHandler.HandleTrigger)
 
