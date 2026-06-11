@@ -179,6 +179,16 @@
         var row = btn.closest('tr');
         if (!row) return;
 
+        var tokenId = row.getAttribute('data-id');
+
+        // Call the API to delete
+        if (tokenId) {
+            fetch('/api/v1/tokens/' + tokenId, { method: 'DELETE' })
+                .catch(function(err) {
+                    console.error('Delete failed:', err);
+                });
+        }
+
         // Fade out and remove
         row.style.transition = 'opacity 0.3s, transform 0.3s';
         row.style.opacity = '0';

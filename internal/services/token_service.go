@@ -41,6 +41,7 @@ func (s *TokenService) GenerateToken(userID uuid.UUID, req models.CreateTokenReq
 
 	// Generate unique trigger identifier
 	triggerID := generateSecureID(16)
+	token.TriggerID = triggerID
 
 	// Set payload and trigger URL based on token type
 	switch req.Type {

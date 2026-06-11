@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
@@ -9,18 +10,21 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/parthjindal/kavach/internal/models"
+	"github.com/parthjindal/kavach/internal/database"
 	"github.com/parthjindal/kavach/internal/services"
 )
 
 // PageHandler serves HTML pages using Go templates + HTMX
 type PageHandler struct {
 	templateDir string
+	db          *sql.DB
 	funcMap     template.FuncMap
 }
 
 // NewPageHandler creates a new page handler
-func NewPageHandler(templateDir string) *PageHandler {
+func NewPageHandler(templateDir string, db ...*sql.DB) *PageHandler {
 	funcMap := template.FuncMap{
 		"title": func(s string) string {
 			if len(s) == 0 {
@@ -45,8 +49,14 @@ func NewPageHandler(templateDir string) *PageHandler {
 		},
 	}
 
+	var dbConn *sql.DB
+	if len(db) > 0 {
+		dbConn = db[0]
+	}
+
 	return &PageHandler{
 		templateDir: templateDir,
+		db:          dbConn,
 		funcMap:     funcMap,
 	}
 }
@@ -194,6 +204,51 @@ func (h *PageHandler) Dashboard(c *fiber.Ctx) error {
 
 // TokensList renders the tokens list page
 func (h *PageHandler) TokensList(c *fiber.Ctx) error {
+	// Try to load real tokens from database
+	if h.db != nil {
+		tokenRepo := database.NewTokenRepository(h.db)
+		// Use a nil UUID to list all tokens (or the default user's tokens)
+		row := h.db.QueryRow("SELECT id FROM users LIMIT 1")
+		var userID uuid.UUID
+		if err := row.Scan(&userID); err == nil {
+			dbTokens, err := tokenRepo.ListByUserID(userID, 100, 0)
+			if err == nil && len(dbTokens) > 0 {
+				items := make([]TokenItem, len(dbTokens))
+				for i, t := range dbTokens {
+					lastTriggered := "Never"
+					if t.LastTriggered != nil {
+						lastTriggered = timeAgo(*t.LastTriggered)
+					}
+					items[i] = TokenItem{
+						ID:            t.ID.String(),
+						Name:          t.Name,
+						Type:          string(t.Type),
+						IsTriggered:   t.TriggerCount > 0,
+						TriggerCount:  t.TriggerCount,
+						LastTriggered: lastTriggered,
+						Payload:       t.Payload,
+						Description:   t.Description,
+						CreatedAt:     t.CreatedAt.Format("Jan 2, 2006"),
+						IsActive:      t.IsActive,
+					}
+				}
+				data := struct {
+					Title      string
+					ActiveNav  string
+					AlertCount int
+					Tokens     []TokenItem
+				}{
+					Title:      "Tokens",
+					ActiveNav:  "tokens",
+					AlertCount: 0,
+					Tokens:     items,
+				}
+				return h.renderPage(c, "tokens/index.html", data)
+			}
+		}
+	}
+
+	// Fallback to mock data if DB not available or empty
 	data := struct {
 		Title        string
 		ActiveNav    string
@@ -423,9 +478,213 @@ func (h *PageHandler) SettingsPage(c *fiber.Ctx) error {
 	return h.renderPage(c, "settings/index.html", data)
 }
 
+// TokenDetail renders the token detail page with full info and activity timeline
+func (h *PageHandler) TokenDetail(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	// Try to load from database
+	if h.db != nil {
+		tokenUUID, err := uuid.Parse(id)
+		if err == nil {
+			tokenRepo := database.NewTokenRepository(h.db)
+			token, err := tokenRepo.GetByID(tokenUUID)
+			if err == nil && token != nil {
+				// Load events for this token
+				eventRepo := database.NewEventRepository(h.db)
+				events, _ := eventRepo.ListByTokenID(tokenUUID, 50)
+
+				type EventItem struct {
+					ID        string
+					IPAddress string
+					Country   string
+					City      string
+					Browser   string
+					UserAgent string
+					TimeAgo   string
+					CreatedAt string
+				}
+
+				eventItems := make([]EventItem, 0)
+				if events != nil {
+					for _, e := range events {
+						browser := parseBrowser(e.UserAgent)
+						eventItems = append(eventItems, EventItem{
+							ID:        e.ID.String(),
+							IPAddress: e.IPAddress,
+							Country:   e.Country,
+							City:      e.City,
+							Browser:   browser,
+							UserAgent: e.UserAgent,
+							TimeAgo:   timeAgo(e.CreatedAt),
+							CreatedAt: e.CreatedAt.Format("Jan 2, 2006 3:04 PM"),
+						})
+					}
+				}
+
+				lastTriggered := "Never"
+				if token.LastTriggered != nil {
+					lastTriggered = token.LastTriggered.Format("Jan 2, 2006 3:04 PM")
+				}
+
+				data := struct {
+					Title         string
+					ActiveNav     string
+					AlertCount    int
+					Token         TokenItem
+					TriggerURL    string
+					Events        []EventItem
+					LastTriggered string
+				}{
+					Title:      "Token - " + token.Name,
+					ActiveNav:  "tokens",
+					AlertCount: 0,
+					Token: TokenItem{
+						ID:            token.ID.String(),
+						Name:          token.Name,
+						Type:          string(token.Type),
+						IsTriggered:   token.TriggerCount > 0,
+						TriggerCount:  token.TriggerCount,
+						LastTriggered: lastTriggered,
+						Payload:       token.Payload,
+						Description:   token.Description,
+						CreatedAt:     token.CreatedAt.Format("Jan 2, 2006"),
+						IsActive:      token.IsActive,
+					},
+					TriggerURL:    token.TriggerURL,
+					Events:        eventItems,
+					LastTriggered: lastTriggered,
+				}
+				return h.renderPage(c, "tokens/detail.html", data)
+			}
+		}
+	}
+
+	// Fallback mock data for demo mode
+	type EventItem struct {
+		ID        string
+		IPAddress string
+		Country   string
+		City      string
+		Browser   string
+		UserAgent string
+		TimeAgo   string
+		CreatedAt string
+	}
+
+	data := struct {
+		Title         string
+		ActiveNav     string
+		AlertCount    int
+		Token         TokenItem
+		TriggerURL    string
+		Events        []EventItem
+		LastTriggered string
+	}{
+		Title:      "Token - production-db-key",
+		ActiveNav:  "tokens",
+		AlertCount: 0,
+		Token: TokenItem{
+			ID:            id,
+			Name:          "production-db-key",
+			Type:          "api_key",
+			IsTriggered:   true,
+			TriggerCount:  12,
+			LastTriggered: "2 min ago",
+			Payload:       "kv_live_a3f9c2b1d4e5f6a7b8c9d0e1f2a3b4c5",
+			Description:   "Planted in .env on staging server",
+			CreatedAt:     "Jun 1, 2026",
+			IsActive:      true,
+		},
+		TriggerURL:    "http://localhost:8080/t/abc123",
+		LastTriggered: "Jun 11, 2026 2:30 PM",
+		Events: []EventItem{
+			{ID: "1", IPAddress: "103.45.67.89", Country: "India", City: "Mumbai", Browser: "Chrome/Linux", UserAgent: "Mozilla/5.0 (X11; Linux x86_64) Chrome/125.0", TimeAgo: "2 min ago", CreatedAt: "Jun 11, 2026 2:30 PM"},
+			{ID: "2", IPAddress: "45.33.21.110", Country: "Brazil", City: "Sao Paulo", Browser: "Firefox/Win", UserAgent: "Mozilla/5.0 (Windows NT 10.0) Firefox/126.0", TimeAgo: "1 hr ago", CreatedAt: "Jun 11, 2026 1:15 PM"},
+			{ID: "3", IPAddress: "92.168.1.44", Country: "Germany", City: "Berlin", Browser: "Bot/Crawler", UserAgent: "python-requests/2.31.0", TimeAgo: "3 hrs ago", CreatedAt: "Jun 11, 2026 11:00 AM"},
+		},
+	}
+
+	return h.renderPage(c, "tokens/detail.html", data)
+}
+
+// TokenEdit renders the edit form for a token
+func (h *PageHandler) TokenEdit(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	// Try to load from database
+	if h.db != nil {
+		tokenUUID, err := uuid.Parse(id)
+		if err == nil {
+			tokenRepo := database.NewTokenRepository(h.db)
+			token, err := tokenRepo.GetByID(tokenUUID)
+			if err == nil && token != nil {
+				data := struct {
+					Title      string
+					ActiveNav  string
+					AlertCount int
+					Token      TokenItem
+				}{
+					Title:      "Edit Token - " + token.Name,
+					ActiveNav:  "tokens",
+					AlertCount: 0,
+					Token: TokenItem{
+						ID:          token.ID.String(),
+						Name:        token.Name,
+						Type:        string(token.Type),
+						Description: token.Description,
+						IsActive:    token.IsActive,
+					},
+				}
+				return h.renderPage(c, "tokens/edit.html", data)
+			}
+		}
+	}
+
+	// Fallback mock data for demo mode
+	data := struct {
+		Title      string
+		ActiveNav  string
+		AlertCount int
+		Token      TokenItem
+	}{
+		Title:      "Edit Token",
+		ActiveNav:  "tokens",
+		AlertCount: 0,
+		Token: TokenItem{
+			ID:          id,
+			Name:        "production-db-key",
+			Type:        "api_key",
+			Description: "Planted in .env on staging server",
+			IsActive:    true,
+		},
+	}
+
+	return h.renderPage(c, "tokens/edit.html", data)
+}
+
 // ===================== TEMPLATE RENDERING =====================
 
-// renderPage parses and executes the layout + page template
+
+// timeAgo returns a human-readable time difference string
+func timeAgo(t time.Time) string {
+	diff := time.Since(t)
+	switch {
+	case diff < time.Minute:
+		return "just now"
+	case diff < time.Hour:
+		mins := int(diff.Minutes())
+		return fmt.Sprintf("%d min ago", mins)
+	case diff < 24*time.Hour:
+		hrs := int(diff.Hours())
+		return fmt.Sprintf("%d hrs ago", hrs)
+	case diff < 7*24*time.Hour:
+		days := int(diff.Hours() / 24)
+		return fmt.Sprintf("%d days ago", days)
+	default:
+		return t.Format("Jan 2, 2006")
+	}
+}
+
 func (h *PageHandler) renderPage(c *fiber.Ctx, page string, data interface{}) error {
 	layoutPath := filepath.Join(h.templateDir, "layouts", "base.html")
 	pagePath := filepath.Join(h.templateDir, page)
@@ -472,4 +731,43 @@ func formatTimeAgo(t time.Time) string {
 		}
 		return fmt.Sprintf("%d days ago", days)
 	}
+}
+
+// parseBrowser extracts a short browser name from a user agent string
+func parseBrowser(ua string) string {
+	if ua == "" {
+		return "Unknown"
+	}
+	// Simple user agent parsing
+	switch {
+	case contains(ua, "Chrome") && !contains(ua, "Edg"):
+		return "Chrome"
+	case contains(ua, "Firefox"):
+		return "Firefox"
+	case contains(ua, "Safari") && !contains(ua, "Chrome"):
+		return "Safari"
+	case contains(ua, "Edg"):
+		return "Edge"
+	case contains(ua, "python-requests") || contains(ua, "curl") || contains(ua, "bot") || contains(ua, "Bot"):
+		return "Bot/Crawler"
+	default:
+		if len(ua) > 20 {
+			return ua[:20] + "..."
+		}
+		return ua
+	}
+}
+
+// contains checks if s contains substr (case-sensitive)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }

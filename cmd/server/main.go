@@ -23,6 +23,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// defaultUserID is the ID of the default admin user, used when no auth is configured
+var defaultUserID uuid.UUID
+
 func main() {
 	godotenv.Load()
 
@@ -38,6 +41,19 @@ func main() {
 		log.Println("   Set DATABASE_URL in .env to connect to PostgreSQL")
 	}
 	defer database.Close()
+
+	// Create default user if DB is connected (needed for token ownership)
+	if db != nil {
+		row := db.QueryRow("SELECT id FROM users WHERE email = 'admin@kavach.dev'")
+		if err := row.Scan(&defaultUserID); err != nil {
+			// User doesn't exist — create it
+			defaultUserID = uuid.New()
+			_, insertErr := db.Exec("INSERT INTO users (id, email, name, plan, is_active) VALUES ($1, 'admin@kavach.dev', 'Admin', 'free', true)", defaultUserID)
+			if insertErr != nil {
+				log.Printf("Warning: could not create default user: %v", insertErr)
+			}
+		}
+	}
 
 	app := fiber.New(fiber.Config{
 		AppName:               "Kavach",
@@ -66,7 +82,7 @@ func main() {
 	app.Use(csrfProtection(allowedOrigins))
 
 	triggerHandler := handlers.NewTriggerHandler()
-	pageHandler := handlers.NewPageHandler("./templates")
+	pageHandler := handlers.NewPageHandler("./templates", db)
 
 	// Private access gate: if KAVACH_ACCESS_KEY is set, gate all non-trigger routes
 	app.Use(accessGate())
@@ -77,6 +93,8 @@ func main() {
 	app.Get("/signup", pageHandler.SignupPage)
 	app.Get("/tokens", pageHandler.TokensList)
 	app.Get("/tokens/new", pageHandler.NewToken)
+	app.Get("/tokens/:id/edit", pageHandler.TokenEdit)
+	app.Get("/tokens/:id", pageHandler.TokenDetail)
 	app.Get("/alerts", pageHandler.AlertsList)
 	app.Get("/attackers", pageHandler.AttackersList)
 	app.Get("/attackers/:id", pageHandler.AttackerDetail)
@@ -128,13 +146,106 @@ func main() {
 	// }
 
 	api.Get("/tokens", func(c *fiber.Ctx) error {
+		if database.DB != nil {
+			tokenRepo := database.NewTokenRepository(database.DB)
+			tokens, err := tokenRepo.ListByUserID(defaultUserID, 100, 0)
+			if err != nil {
+				log.Printf("Failed to list tokens from DB: %v", err)
+				return c.JSON(fiber.Map{"tokens": []interface{}{}, "message": "Failed to query tokens"})
+			}
+			if tokens == nil {
+				tokens = []*models.Token{}
+			}
+			return c.JSON(fiber.Map{"tokens": tokens})
+		}
 		return c.JSON(fiber.Map{"tokens": []interface{}{}, "message": "Connect database to see real tokens"})
 	})
 	api.Post("/tokens", handleTokenCreate)
 	api.Get("/tokens/:id", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"token": nil})
+		if database.DB != nil {
+			tokenID, err := uuid.Parse(c.Params("id"))
+			if err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": "invalid token ID"})
+			}
+			tokenRepo := database.NewTokenRepository(database.DB)
+			token, err := tokenRepo.GetByID(tokenID)
+			if err != nil {
+				return c.Status(500).JSON(fiber.Map{"error": "failed to fetch token"})
+			}
+			if token == nil {
+				return c.Status(404).JSON(fiber.Map{"error": "token not found"})
+			}
+			return c.JSON(fiber.Map{"token": token})
+		}
+		return c.Status(404).JSON(fiber.Map{"error": "token not found", "message": "Database not connected"})
+	})
+	api.Put("/tokens/:id", func(c *fiber.Ctx) error {
+		type updateReq struct {
+			Name        string `json:"name" form:"name"`
+			Description string `json:"description" form:"description"`
+			IsActive    string `json:"is_active" form:"is_active"`
+		}
+		var req updateReq
+		if err := c.BodyParser(&req); err != nil {
+			if c.Get("HX-Request") == "true" {
+				return c.SendString(`<div class="text-red-400 text-sm p-3">Invalid request.</div>`)
+			}
+			return c.Status(400).JSON(fiber.Map{"error": "invalid request body"})
+		}
+		if req.Name == "" {
+			if c.Get("HX-Request") == "true" {
+				return c.SendString(`<div class="text-red-400 text-sm p-3">Token name is required.</div>`)
+			}
+			return c.Status(400).JSON(fiber.Map{"error": "name is required"})
+		}
+		isActive := req.IsActive == "true" || req.IsActive == "on"
+		if database.DB != nil {
+			tokenID, err := uuid.Parse(c.Params("id"))
+			if err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": "invalid token ID"})
+			}
+			tokenRepo := database.NewTokenRepository(database.DB)
+			if err := tokenRepo.Update(tokenID, req.Name, req.Description, isActive); err != nil {
+				if c.Get("HX-Request") == "true" {
+					return c.SendString(`<div class="text-red-400 text-sm p-3">Failed to update token.</div>`)
+				}
+				return c.Status(500).JSON(fiber.Map{"error": "failed to update token"})
+			}
+			if c.Get("HX-Request") == "true" {
+				return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-lg p-3 text-sm text-kavach-accent flex items-center gap-2" data-autodismiss>
+					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+					Token updated successfully!
+				</div>`)
+			}
+			token, _ := tokenRepo.GetByID(tokenID)
+			return c.JSON(fiber.Map{"message": "token updated", "token": token})
+		}
+		if c.Get("HX-Request") == "true" {
+			return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-lg p-3 text-sm text-kavach-accent flex items-center gap-2" data-autodismiss>
+				<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+				Token updated (demo mode)
+			</div>`)
+		}
+		return c.JSON(fiber.Map{"message": "token updated (demo mode)"})
 	})
 	api.Delete("/tokens/:id", func(c *fiber.Ctx) error {
+		if database.DB != nil {
+			tokenID, err := uuid.Parse(c.Params("id"))
+			if err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": "invalid token ID"})
+			}
+			tokenRepo := database.NewTokenRepository(database.DB)
+			if err := tokenRepo.Delete(tokenID); err != nil {
+				if c.Get("HX-Request") == "true" {
+					return c.Status(500).SendString(`<div class="text-red-400 text-sm p-3">Failed to delete token.</div>`)
+				}
+				return c.Status(500).JSON(fiber.Map{"error": "failed to delete token"})
+			}
+		}
+		// If HTMX request, return empty string (the row will be removed by hx-swap="delete")
+		if c.Get("HX-Request") == "true" {
+			return c.SendString("")
+		}
 		return c.JSON(fiber.Map{"message": "token deleted"})
 	})
 
@@ -438,12 +549,26 @@ func handleTokenCreate(c *fiber.Ctx) error {
 		Domain:      req.Domain,
 	}
 
-	generatedToken, err := tokenSvc.GenerateToken(uuid.New(), createReq)
+	// Use the default user ID if DB is connected, otherwise generate a random one
+	userID := defaultUserID
+	if userID == uuid.Nil {
+		userID = uuid.New()
+	}
+
+	generatedToken, err := tokenSvc.GenerateToken(userID, createReq)
 	if err != nil {
 		if c.Get("HX-Request") == "true" {
 			return c.SendString(`<div class="text-red-400 text-sm p-3">Failed to generate token: ` + err.Error() + `</div>`)
 		}
 		return c.Status(500).JSON(fiber.Map{"error": "failed to generate token", "details": err.Error()})
+	}
+
+	// Save to database if connected
+	if database.DB != nil {
+		tokenRepo := database.NewTokenRepository(database.DB)
+		if saveErr := tokenRepo.Create(generatedToken, generatedToken.TriggerID); saveErr != nil {
+			log.Printf("Warning: token generated but failed to save to DB: %v", saveErr)
+		}
 	}
 
 	// Check if request is from HTMX — return HTML partial

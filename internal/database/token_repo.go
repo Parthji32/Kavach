@@ -146,3 +146,17 @@ func (r *TokenRepository) CountByUserID(userID uuid.UUID) (int, error) {
 	err := r.db.QueryRow(`SELECT COUNT(*) FROM tokens WHERE user_id = $1 AND is_active = true`, userID).Scan(&count)
 	return count, err
 }
+
+// Update modifies a token's name, description, and active status
+func (r *TokenRepository) Update(tokenID uuid.UUID, name, description string, isActive bool) error {
+	query := `
+		UPDATE tokens 
+		SET name = $2, description = $3, is_active = $4, updated_at = $5
+		WHERE id = $1
+	`
+	_, err := r.db.Exec(query, tokenID, name, description, isActive, time.Now())
+	if err != nil {
+		return fmt.Errorf("failed to update token: %w", err)
+	}
+	return nil
+}
