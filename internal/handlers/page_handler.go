@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/parthjindal/kavach/internal/models"
 	"github.com/parthjindal/kavach/internal/database"
+	"github.com/parthjindal/kavach/internal/models"
 	"github.com/parthjindal/kavach/internal/services"
 )
 
@@ -120,36 +121,66 @@ type TokenItem struct {
 	IsActive      bool
 }
 
+// EventItem represents a trigger event in the token detail timeline
+type EventItem struct {
+	IPAddress string
+	Country   string
+	City      string
+	Browser   string
+	UserAgent string
+	TimeAgo   string
+	CreatedAt string
+}
+
 type AttackerItem struct {
-	ID          string
-	Fingerprint string
-	IPAddress   string
-	Country     string
-	City        string
-	ISP         string
-	ASN         string
-	Browser     string
-	OS          string
-	ThreatLevel string
-	TriggerCount int
+	ID              string
+	Fingerprint     string
+	IPAddress       string
+	Country         string
+	City            string
+	ISP             string
+	ASN             string
+	Browser         string
+	OS              string
+	ThreatLevel     string
+	TriggerCount    int
 	TokensTriggered int
-	FirstSeen   string
-	LastSeen    string
-	Notes       string
-	UserAgent   string
-	TLSFingerprint string
-	Events      []AlertItem
+	FirstSeen       string
+	LastSeen        string
+	Notes           string
+	UserAgent       string
+	TLSFingerprint  string
+	Events          []AlertItem
 }
 
 type IntegrationData struct {
-	Title       string
-	ActiveNav   string
-	AlertCount  int
-	SlackURL    string
-	EmailTo     string
-	EmailFrom   string
-	IsSlackOn   bool
-	IsEmailOn   bool
+	Title      string
+	ActiveNav  string
+	AlertCount int
+	SlackURL   string
+	EmailTo    string
+	EmailFrom  string
+	IsSlackOn  bool
+	IsEmailOn  bool
+}
+
+// TokenDetailData is the data struct for the token detail page
+type TokenDetailData struct {
+	Title         string
+	ActiveNav     string
+	AlertCount    int
+	Token         TokenItem
+	TriggerURL    string
+	Events        []EventItem
+	LastTriggered string
+}
+
+// TokenEditData is the data struct for the token edit page
+type TokenEditData struct {
+	Title      string
+	ActiveNav  string
+	AlertCount int
+	Token      TokenItem
 }
 
 // ===================== PAGE HANDLERS =====================
@@ -178,7 +209,7 @@ func (h *PageHandler) Dashboard(c *fiber.Ctx) error {
 		TopCountries: []CountryItem{
 			{Flag: "\xf0\x9f\x87\xae\xf0\x9f\x87\xb3", Name: "India", Percentage: 34},
 			{Flag: "\xf0\x9f\x87\xa7\xf0\x9f\x87\xb7", Name: "Brazil", Percentage: 22},
-			{Flag: "\xf0\x9f\x87\xa9\xf0\x9f\x87\xaa", Name: "Germany", Percentage: 18},
+			{Flag: "\xf0\x9f\x87\xa9\xf0\x9f\x87\xae", Name: "Germany", Percentage: 18},
 			{Flag: "\xf0\x9f\x8c\x90", Name: "Tor/VPN", Percentage: 26},
 		},
 		RecentIPs: []IPItem{
@@ -204,22 +235,24 @@ func (h *PageHandler) Dashboard(c *fiber.Ctx) error {
 
 // TokensList renders the tokens list page
 func (h *PageHandler) TokensList(c *fiber.Ctx) error {
+	var tokens []TokenItem
+
 	// Try to load real tokens from database
 	if h.db != nil {
 		tokenRepo := database.NewTokenRepository(h.db)
-		// Use a nil UUID to list all tokens (or the default user's tokens)
-		row := h.db.QueryRow("SELECT id FROM users LIMIT 1")
+		// Get default user ID
 		var userID uuid.UUID
+		row := h.db.QueryRow("SELECT id FROM users WHERE email = 'admin@kavach.dev'")
 		if err := row.Scan(&userID); err == nil {
 			dbTokens, err := tokenRepo.ListByUserID(userID, 100, 0)
 			if err == nil && len(dbTokens) > 0 {
-				items := make([]TokenItem, len(dbTokens))
+				tokens = make([]TokenItem, len(dbTokens))
 				for i, t := range dbTokens {
 					lastTriggered := "Never"
 					if t.LastTriggered != nil {
-						lastTriggered = timeAgo(*t.LastTriggered)
+						lastTriggered = formatTimeAgo(*t.LastTriggered)
 					}
-					items[i] = TokenItem{
+					tokens[i] = TokenItem{
 						ID:            t.ID.String(),
 						Name:          t.Name,
 						Type:          string(t.Type),
@@ -232,33 +265,15 @@ func (h *PageHandler) TokensList(c *fiber.Ctx) error {
 						IsActive:      t.IsActive,
 					}
 				}
-				data := struct {
-					Title      string
-					ActiveNav  string
-					AlertCount int
-					Tokens     []TokenItem
-				}{
-					Title:      "Tokens",
-					ActiveNav:  "tokens",
-					AlertCount: 0,
-					Tokens:     items,
-				}
-				return h.renderPage(c, "tokens/index.html", data)
+			} else if err != nil {
+				log.Printf("Failed to list tokens from DB: %v", err)
 			}
 		}
 	}
 
-	// Fallback to mock data if DB not available or empty
-	data := struct {
-		Title        string
-		ActiveNav    string
-		AlertCount   int
-		Tokens       []TokenItem
-	}{
-		Title:      "Tokens",
-		ActiveNav:  "tokens",
-		AlertCount: 3,
-		Tokens: []TokenItem{
+	// Fallback to mock data if DB is nil or returned no tokens
+	if tokens == nil {
+		tokens = []TokenItem{
 			{ID: "1", Name: "production-db-key", Type: "api_key", IsTriggered: true, TriggerCount: 12, LastTriggered: "2 min ago", Payload: "kv_live_a3f9c2b1d4e5f6a7b8c9d0e1f2a3b4c5", Description: "Planted in .env on staging server", CreatedAt: "Jun 1, 2026", IsActive: true},
 			{ID: "2", Name: "financials_2026.pdf", Type: "document", IsTriggered: true, TriggerCount: 3, LastTriggered: "18 min ago", Payload: "https://t.kavach.dev/t/abc123/doc", Description: "Fake financial report in shared drive", CreatedAt: "May 28, 2026", IsActive: true},
 			{ID: "3", Name: "internal-wiki-backup", Type: "url", IsTriggered: false, TriggerCount: 5, LastTriggered: "1 hr ago", Payload: "https://t.kavach.dev/t/def456", Description: "Link planted in internal wiki", CreatedAt: "May 25, 2026", IsActive: true},
@@ -268,8 +283,20 @@ func (h *PageHandler) TokensList(c *fiber.Ctx) error {
 			{ID: "7", Name: "office-wifi-qr", Type: "qr_code", IsTriggered: true, TriggerCount: 2, LastTriggered: "4 hrs ago", Payload: "data:image/png;base64,iVBORw0KGgo...", Description: "QR code posted in break room", CreatedAt: "Jun 9, 2026", IsActive: true},
 			{ID: "8", Name: "company-login-page", Type: "cloned_site", IsTriggered: true, TriggerCount: 1, LastTriggered: "6 hrs ago", Payload: "<script>/* clone detection */</script>", Description: "Clone detection on login.company.com", CreatedAt: "Jun 7, 2026", IsActive: true},
 			{ID: "9", Name: "newsletter-tracker", Type: "web_image", IsTriggered: false, TriggerCount: 8, LastTriggered: "1 hr ago", Payload: "https://t.kavach.dev/t/px9876/pixel", Description: "Tracking pixel in leaked email template", CreatedAt: "Jun 3, 2026", IsActive: true},
-			{ID: "10", Name: "s3-backup-creds", Type: "aws_key", IsTriggered: true, TriggerCount: 3, LastTriggered: "30 min ago", Payload: "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", Description: "Fake AWS keys in .env on honeypot server", CreatedAt: "Jun 6, 2026", IsActive: true},
-		},
+			{ID: "10", Name: "s3-backup-creds", Type: "aws_key", IsTriggered: true, TriggerCount: 3, LastTriggered: "30 min ago", Payload: "AWS_ACCESS_KEY_ID=[REDACTED_AWS_KEY]\n[REDACTED_AWS_SECRET]", Description: "Fake AWS keys in .env on honeypot server", CreatedAt: "Jun 6, 2026", IsActive: true},
+		}
+	}
+
+	data := struct {
+		Title      string
+		ActiveNav  string
+		AlertCount int
+		Tokens     []TokenItem
+	}{
+		Title:      "Tokens",
+		ActiveNav:  "tokens",
+		AlertCount: 3,
+		Tokens:     tokens,
 	}
 
 	return h.renderPage(c, "tokens/index.html", data)
@@ -288,6 +315,174 @@ func (h *PageHandler) NewToken(c *fiber.Ctx) error {
 	}
 
 	return h.renderPage(c, "tokens/new.html", data)
+}
+
+// TokenDetail renders a single token detail page
+func (h *PageHandler) TokenDetail(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	// Try to load token from database
+	var token TokenItem
+	var triggerURL string
+	var lastTriggered string
+	var events []EventItem
+	found := false
+
+	if h.db != nil {
+		tokenID, parseErr := uuid.Parse(id)
+		if parseErr == nil {
+			tokenRepo := database.NewTokenRepository(h.db)
+			dbToken, err := tokenRepo.GetByID(tokenID)
+			if err == nil && dbToken != nil {
+				lt := "Never"
+				if dbToken.LastTriggered != nil {
+					lt = formatTimeAgo(*dbToken.LastTriggered)
+				}
+				token = TokenItem{
+					ID:            dbToken.ID.String(),
+					Name:          dbToken.Name,
+					Type:          string(dbToken.Type),
+					IsTriggered:   dbToken.TriggerCount > 0,
+					TriggerCount:  dbToken.TriggerCount,
+					LastTriggered: lt,
+					Payload:       dbToken.Payload,
+					Description:   dbToken.Description,
+					CreatedAt:     dbToken.CreatedAt.Format("Jan 2, 2006"),
+					IsActive:      dbToken.IsActive,
+				}
+				triggerURL = dbToken.TriggerURL
+				lastTriggered = lt
+				found = true
+			}
+		}
+	}
+
+	// Fallback to mock data for demo mode
+	if !found {
+		baseURL := os.Getenv("TRIGGER_BASE_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:8080"
+		}
+		mockTokens := getMockTokenByID(id)
+		if mockTokens != nil {
+			token = *mockTokens
+			triggerURL = baseURL + "/t/" + id
+			lastTriggered = token.LastTriggered
+		} else {
+			// Default fallback so template doesn't crash
+			token = TokenItem{
+				ID:          id,
+				Name:        "Unknown Token",
+				Type:        "url",
+				IsActive:    false,
+				Description: "",
+				Payload:     "",
+				CreatedAt:   "Unknown",
+			}
+			lastTriggered = "Never"
+		}
+	}
+
+	// Mock events for demo (in production these come from the events table)
+	if events == nil {
+		events = []EventItem{}
+	}
+
+	data := TokenDetailData{
+		Title:         "Token Detail",
+		ActiveNav:     "tokens",
+		AlertCount:    0,
+		Token:         token,
+		TriggerURL:    triggerURL,
+		Events:        events,
+		LastTriggered: lastTriggered,
+	}
+
+	return h.renderPage(c, "tokens/detail.html", data)
+}
+
+// TokenEdit renders the token edit form
+func (h *PageHandler) TokenEdit(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	// Try to load token from database
+	var token TokenItem
+	found := false
+
+	if h.db != nil {
+		tokenID, parseErr := uuid.Parse(id)
+		if parseErr == nil {
+			tokenRepo := database.NewTokenRepository(h.db)
+			dbToken, err := tokenRepo.GetByID(tokenID)
+			if err == nil && dbToken != nil {
+				lt := "Never"
+				if dbToken.LastTriggered != nil {
+					lt = formatTimeAgo(*dbToken.LastTriggered)
+				}
+				token = TokenItem{
+					ID:            dbToken.ID.String(),
+					Name:          dbToken.Name,
+					Type:          string(dbToken.Type),
+					IsTriggered:   dbToken.TriggerCount > 0,
+					TriggerCount:  dbToken.TriggerCount,
+					LastTriggered: lt,
+					Payload:       dbToken.Payload,
+					Description:   dbToken.Description,
+					CreatedAt:     dbToken.CreatedAt.Format("Jan 2, 2006"),
+					IsActive:      dbToken.IsActive,
+				}
+				found = true
+			}
+		}
+	}
+
+	// Fallback to mock data for demo mode
+	if !found {
+		mockToken := getMockTokenByID(id)
+		if mockToken != nil {
+			token = *mockToken
+		} else {
+			// Default fallback so template doesn't crash
+			token = TokenItem{
+				ID:          id,
+				Name:        "Unknown Token",
+				Type:        "url",
+				IsActive:    true,
+				Description: "",
+				Payload:     "",
+				CreatedAt:   "Unknown",
+			}
+		}
+	}
+
+	data := TokenEditData{
+		Title:      "Edit Token",
+		ActiveNav:  "tokens",
+		AlertCount: 0,
+		Token:      token,
+	}
+
+	return h.renderPage(c, "tokens/edit.html", data)
+}
+
+// getMockTokenByID returns a mock token by ID for demo mode
+func getMockTokenByID(id string) *TokenItem {
+	mockTokens := map[string]TokenItem{
+		"1":  {ID: "1", Name: "production-db-key", Type: "api_key", IsTriggered: true, TriggerCount: 12, LastTriggered: "2 min ago", Payload: "kv_live_a3f9c2b1d4e5f6a7b8c9d0e1f2a3b4c5", Description: "Planted in .env on staging server", CreatedAt: "Jun 1, 2026", IsActive: true},
+		"2":  {ID: "2", Name: "financials_2026.pdf", Type: "document", IsTriggered: true, TriggerCount: 3, LastTriggered: "18 min ago", Payload: "https://t.kavach.dev/t/abc123/doc", Description: "Fake financial report in shared drive", CreatedAt: "May 28, 2026", IsActive: true},
+		"3":  {ID: "3", Name: "internal-wiki-backup", Type: "url", IsTriggered: false, TriggerCount: 5, LastTriggered: "1 hr ago", Payload: "https://t.kavach.dev/t/def456", Description: "Link planted in internal wiki", CreatedAt: "May 25, 2026", IsActive: true},
+		"4":  {ID: "4", Name: "staging-api.internal", Type: "dns", IsTriggered: false, TriggerCount: 1, LastTriggered: "3 hrs ago", Payload: "staging-api.t.kavach.dev", Description: "Fake DNS entry in hosts file", CreatedAt: "May 20, 2026", IsActive: true},
+		"5":  {ID: "5", Name: "admin-creds-backup", Type: "api_key", IsTriggered: false, TriggerCount: 0, LastTriggered: "Never", Payload: "kv_live_x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4", Description: "Planted in password manager export", CreatedAt: "Jun 5, 2026", IsActive: true},
+		"6":  {ID: "6", Name: "hr-contact@trap.kavach.dev", Type: "email", IsTriggered: false, TriggerCount: 0, LastTriggered: "Never", Payload: "hr-contact@trap.kavach.dev", Description: "Fake HR email in company directory", CreatedAt: "Jun 8, 2026", IsActive: true},
+		"7":  {ID: "7", Name: "office-wifi-qr", Type: "qr_code", IsTriggered: true, TriggerCount: 2, LastTriggered: "4 hrs ago", Payload: "data:image/png;base64,iVBORw0KGgo...", Description: "QR code posted in break room", CreatedAt: "Jun 9, 2026", IsActive: true},
+		"8":  {ID: "8", Name: "company-login-page", Type: "cloned_site", IsTriggered: true, TriggerCount: 1, LastTriggered: "6 hrs ago", Payload: "<script>/* clone detection */</script>", Description: "Clone detection on login.company.com", CreatedAt: "Jun 7, 2026", IsActive: true},
+		"9":  {ID: "9", Name: "newsletter-tracker", Type: "web_image", IsTriggered: false, TriggerCount: 8, LastTriggered: "1 hr ago", Payload: "https://t.kavach.dev/t/px9876/pixel", Description: "Tracking pixel in leaked email template", CreatedAt: "Jun 3, 2026", IsActive: true},
+		"10": {ID: "10", Name: "s3-backup-creds", Type: "aws_key", IsTriggered: true, TriggerCount: 3, LastTriggered: "30 min ago", Payload: "AWS_ACCESS_KEY_ID=[REDACTED_AWS_KEY]\n[REDACTED_AWS_SECRET]", Description: "Fake AWS keys in .env on honeypot server", CreatedAt: "Jun 6, 2026", IsActive: true},
+	}
+	if t, ok := mockTokens[id]; ok {
+		return &t
+	}
+	return nil
 }
 
 // AlertsList renders the alerts page
@@ -322,21 +517,21 @@ func (h *PageHandler) AttackersList(c *fiber.Ctx) error {
 	items := make([]AttackerItem, len(mockAttackers))
 	for i, a := range mockAttackers {
 		items[i] = AttackerItem{
-			ID:          a.ID.String(),
-			Fingerprint: a.Fingerprint,
-			IPAddress:   a.IPAddress,
-			Country:     a.Country,
-			City:        a.City,
-			ISP:         a.ISP,
-			ASN:         a.ASN,
-			Browser:     a.Browser,
-			OS:          a.OS,
-			ThreatLevel: string(a.ThreatLevel),
-			TriggerCount: a.TriggerCount,
+			ID:              a.ID.String(),
+			Fingerprint:     a.Fingerprint,
+			IPAddress:       a.IPAddress,
+			Country:         a.Country,
+			City:            a.City,
+			ISP:             a.ISP,
+			ASN:             a.ASN,
+			Browser:         a.Browser,
+			OS:              a.OS,
+			ThreatLevel:     string(a.ThreatLevel),
+			TriggerCount:    a.TriggerCount,
 			TokensTriggered: a.TokensTriggered,
-			FirstSeen:   formatTimeAgo(a.FirstSeenAt),
-			LastSeen:    formatTimeAgo(a.LastSeenAt),
-			Notes:       a.Notes,
+			FirstSeen:       formatTimeAgo(a.FirstSeenAt),
+			LastSeen:        formatTimeAgo(a.LastSeenAt),
+			Notes:           a.Notes,
 		}
 	}
 
@@ -378,23 +573,23 @@ func (h *PageHandler) AttackerDetail(c *fiber.Ctx) error {
 	}
 
 	item := AttackerItem{
-		ID:          found.ID.String(),
-		Fingerprint: found.Fingerprint,
-		IPAddress:   found.IPAddress,
-		Country:     found.Country,
-		City:        found.City,
-		ISP:         found.ISP,
-		ASN:         found.ASN,
-		Browser:     found.Browser,
-		OS:          found.OS,
-		ThreatLevel: string(found.ThreatLevel),
-		TriggerCount: found.TriggerCount,
+		ID:              found.ID.String(),
+		Fingerprint:     found.Fingerprint,
+		IPAddress:       found.IPAddress,
+		Country:         found.Country,
+		City:            found.City,
+		ISP:             found.ISP,
+		ASN:             found.ASN,
+		Browser:         found.Browser,
+		OS:              found.OS,
+		ThreatLevel:     string(found.ThreatLevel),
+		TriggerCount:    found.TriggerCount,
 		TokensTriggered: found.TokensTriggered,
-		FirstSeen:   found.FirstSeenAt.Format("Jan 2, 2006 3:04 PM"),
-		LastSeen:    formatTimeAgo(found.LastSeenAt),
-		Notes:       found.Notes,
-		UserAgent:   found.UserAgent,
-		TLSFingerprint: found.TLSFingerprint,
+		FirstSeen:       found.FirstSeenAt.Format("Jan 2, 2006 3:04 PM"),
+		LastSeen:        formatTimeAgo(found.LastSeenAt),
+		Notes:           found.Notes,
+		UserAgent:       found.UserAgent,
+		TLSFingerprint:  found.TLSFingerprint,
 		Events: []AlertItem{
 			{Title: "Triggered production-db-key", TokenType: "api_key", Severity: "critical", IPAddress: found.IPAddress, TimeAgo: "2 min ago"},
 			{Title: "Triggered internal-wiki-backup", TokenType: "url", Severity: "warning", IPAddress: found.IPAddress, TimeAgo: "1 hr ago"},
@@ -478,213 +673,9 @@ func (h *PageHandler) SettingsPage(c *fiber.Ctx) error {
 	return h.renderPage(c, "settings/index.html", data)
 }
 
-// TokenDetail renders the token detail page with full info and activity timeline
-func (h *PageHandler) TokenDetail(c *fiber.Ctx) error {
-	id := c.Params("id")
-
-	// Try to load from database
-	if h.db != nil {
-		tokenUUID, err := uuid.Parse(id)
-		if err == nil {
-			tokenRepo := database.NewTokenRepository(h.db)
-			token, err := tokenRepo.GetByID(tokenUUID)
-			if err == nil && token != nil {
-				// Load events for this token
-				eventRepo := database.NewEventRepository(h.db)
-				events, _ := eventRepo.ListByTokenID(tokenUUID, 50)
-
-				type EventItem struct {
-					ID        string
-					IPAddress string
-					Country   string
-					City      string
-					Browser   string
-					UserAgent string
-					TimeAgo   string
-					CreatedAt string
-				}
-
-				eventItems := make([]EventItem, 0)
-				if events != nil {
-					for _, e := range events {
-						browser := parseBrowser(e.UserAgent)
-						eventItems = append(eventItems, EventItem{
-							ID:        e.ID.String(),
-							IPAddress: e.IPAddress,
-							Country:   e.Country,
-							City:      e.City,
-							Browser:   browser,
-							UserAgent: e.UserAgent,
-							TimeAgo:   timeAgo(e.CreatedAt),
-							CreatedAt: e.CreatedAt.Format("Jan 2, 2006 3:04 PM"),
-						})
-					}
-				}
-
-				lastTriggered := "Never"
-				if token.LastTriggered != nil {
-					lastTriggered = token.LastTriggered.Format("Jan 2, 2006 3:04 PM")
-				}
-
-				data := struct {
-					Title         string
-					ActiveNav     string
-					AlertCount    int
-					Token         TokenItem
-					TriggerURL    string
-					Events        []EventItem
-					LastTriggered string
-				}{
-					Title:      "Token - " + token.Name,
-					ActiveNav:  "tokens",
-					AlertCount: 0,
-					Token: TokenItem{
-						ID:            token.ID.String(),
-						Name:          token.Name,
-						Type:          string(token.Type),
-						IsTriggered:   token.TriggerCount > 0,
-						TriggerCount:  token.TriggerCount,
-						LastTriggered: lastTriggered,
-						Payload:       token.Payload,
-						Description:   token.Description,
-						CreatedAt:     token.CreatedAt.Format("Jan 2, 2006"),
-						IsActive:      token.IsActive,
-					},
-					TriggerURL:    token.TriggerURL,
-					Events:        eventItems,
-					LastTriggered: lastTriggered,
-				}
-				return h.renderPage(c, "tokens/detail.html", data)
-			}
-		}
-	}
-
-	// Fallback mock data for demo mode
-	type EventItem struct {
-		ID        string
-		IPAddress string
-		Country   string
-		City      string
-		Browser   string
-		UserAgent string
-		TimeAgo   string
-		CreatedAt string
-	}
-
-	data := struct {
-		Title         string
-		ActiveNav     string
-		AlertCount    int
-		Token         TokenItem
-		TriggerURL    string
-		Events        []EventItem
-		LastTriggered string
-	}{
-		Title:      "Token - production-db-key",
-		ActiveNav:  "tokens",
-		AlertCount: 0,
-		Token: TokenItem{
-			ID:            id,
-			Name:          "production-db-key",
-			Type:          "api_key",
-			IsTriggered:   true,
-			TriggerCount:  12,
-			LastTriggered: "2 min ago",
-			Payload:       "kv_live_a3f9c2b1d4e5f6a7b8c9d0e1f2a3b4c5",
-			Description:   "Planted in .env on staging server",
-			CreatedAt:     "Jun 1, 2026",
-			IsActive:      true,
-		},
-		TriggerURL:    "http://localhost:8080/t/abc123",
-		LastTriggered: "Jun 11, 2026 2:30 PM",
-		Events: []EventItem{
-			{ID: "1", IPAddress: "103.45.67.89", Country: "India", City: "Mumbai", Browser: "Chrome/Linux", UserAgent: "Mozilla/5.0 (X11; Linux x86_64) Chrome/125.0", TimeAgo: "2 min ago", CreatedAt: "Jun 11, 2026 2:30 PM"},
-			{ID: "2", IPAddress: "45.33.21.110", Country: "Brazil", City: "Sao Paulo", Browser: "Firefox/Win", UserAgent: "Mozilla/5.0 (Windows NT 10.0) Firefox/126.0", TimeAgo: "1 hr ago", CreatedAt: "Jun 11, 2026 1:15 PM"},
-			{ID: "3", IPAddress: "92.168.1.44", Country: "Germany", City: "Berlin", Browser: "Bot/Crawler", UserAgent: "python-requests/2.31.0", TimeAgo: "3 hrs ago", CreatedAt: "Jun 11, 2026 11:00 AM"},
-		},
-	}
-
-	return h.renderPage(c, "tokens/detail.html", data)
-}
-
-// TokenEdit renders the edit form for a token
-func (h *PageHandler) TokenEdit(c *fiber.Ctx) error {
-	id := c.Params("id")
-
-	// Try to load from database
-	if h.db != nil {
-		tokenUUID, err := uuid.Parse(id)
-		if err == nil {
-			tokenRepo := database.NewTokenRepository(h.db)
-			token, err := tokenRepo.GetByID(tokenUUID)
-			if err == nil && token != nil {
-				data := struct {
-					Title      string
-					ActiveNav  string
-					AlertCount int
-					Token      TokenItem
-				}{
-					Title:      "Edit Token - " + token.Name,
-					ActiveNav:  "tokens",
-					AlertCount: 0,
-					Token: TokenItem{
-						ID:          token.ID.String(),
-						Name:        token.Name,
-						Type:        string(token.Type),
-						Description: token.Description,
-						IsActive:    token.IsActive,
-					},
-				}
-				return h.renderPage(c, "tokens/edit.html", data)
-			}
-		}
-	}
-
-	// Fallback mock data for demo mode
-	data := struct {
-		Title      string
-		ActiveNav  string
-		AlertCount int
-		Token      TokenItem
-	}{
-		Title:      "Edit Token",
-		ActiveNav:  "tokens",
-		AlertCount: 0,
-		Token: TokenItem{
-			ID:          id,
-			Name:        "production-db-key",
-			Type:        "api_key",
-			Description: "Planted in .env on staging server",
-			IsActive:    true,
-		},
-	}
-
-	return h.renderPage(c, "tokens/edit.html", data)
-}
-
 // ===================== TEMPLATE RENDERING =====================
 
-
-// timeAgo returns a human-readable time difference string
-func timeAgo(t time.Time) string {
-	diff := time.Since(t)
-	switch {
-	case diff < time.Minute:
-		return "just now"
-	case diff < time.Hour:
-		mins := int(diff.Minutes())
-		return fmt.Sprintf("%d min ago", mins)
-	case diff < 24*time.Hour:
-		hrs := int(diff.Hours())
-		return fmt.Sprintf("%d hrs ago", hrs)
-	case diff < 7*24*time.Hour:
-		days := int(diff.Hours() / 24)
-		return fmt.Sprintf("%d days ago", days)
-	default:
-		return t.Format("Jan 2, 2006")
-	}
-}
-
+// renderPage parses and executes the layout + page template
 func (h *PageHandler) renderPage(c *fiber.Ctx, page string, data interface{}) error {
 	layoutPath := filepath.Join(h.templateDir, "layouts", "base.html")
 	pagePath := filepath.Join(h.templateDir, page)
@@ -731,43 +722,4 @@ func formatTimeAgo(t time.Time) string {
 		}
 		return fmt.Sprintf("%d days ago", days)
 	}
-}
-
-// parseBrowser extracts a short browser name from a user agent string
-func parseBrowser(ua string) string {
-	if ua == "" {
-		return "Unknown"
-	}
-	// Simple user agent parsing
-	switch {
-	case contains(ua, "Chrome") && !contains(ua, "Edg"):
-		return "Chrome"
-	case contains(ua, "Firefox"):
-		return "Firefox"
-	case contains(ua, "Safari") && !contains(ua, "Chrome"):
-		return "Safari"
-	case contains(ua, "Edg"):
-		return "Edge"
-	case contains(ua, "python-requests") || contains(ua, "curl") || contains(ua, "bot") || contains(ua, "Bot"):
-		return "Bot/Crawler"
-	default:
-		if len(ua) > 20 {
-			return ua[:20] + "..."
-		}
-		return ua
-	}
-}
-
-// contains checks if s contains substr (case-sensitive)
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

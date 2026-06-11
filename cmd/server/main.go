@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"html/template"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -46,13 +48,22 @@ func main() {
 	if db != nil {
 		row := db.QueryRow("SELECT id FROM users WHERE email = 'admin@kavach.dev'")
 		if err := row.Scan(&defaultUserID); err != nil {
-			// User doesn't exist — create it
+			// User doesn't exist — create it (ON CONFLICT for race-safety)
 			defaultUserID = uuid.New()
-			_, insertErr := db.Exec("INSERT INTO users (id, email, name, plan, is_active) VALUES ($1, 'admin@kavach.dev', 'Admin', 'free', true)", defaultUserID)
+			_, insertErr := db.Exec("INSERT INTO users (id, email, name, plan, is_active) VALUES ($1, 'admin@kavach.dev', 'Admin', 'free', true) ON CONFLICT (email) DO NOTHING", defaultUserID)
 			if insertErr != nil {
 				log.Printf("Warning: could not create default user: %v", insertErr)
 			}
+			// Re-read in case another instance won the race
+			_ = db.QueryRow("SELECT id FROM users WHERE email = 'admin@kavach.dev'").Scan(&defaultUserID)
 		}
+	}
+
+	// SECURITY: KAVACH_ACCESS_KEY must be set in production to gate access.
+	// Without it, all routes (including API) are publicly accessible.
+	if os.Getenv("KAVACH_ACCESS_KEY") == "" {
+		log.Println("⚠️  WARNING: KAVACH_ACCESS_KEY is not set. All routes are publicly accessible.")
+		log.Println("   Set KAVACH_ACCESS_KEY in .env for production deployments.")
 	}
 
 	app := fiber.New(fiber.Config{
@@ -81,7 +92,16 @@ func main() {
 	// CSRF protection: validate Origin header on state-changing requests (fix HIGH issue #17)
 	app.Use(csrfProtection(allowedOrigins))
 
-	triggerHandler := handlers.NewTriggerHandler()
+	// Use NewTriggerHandlerWithDB when DB is connected so trigger events are persisted (fix A5)
+	var triggerHandler *handlers.TriggerHandler
+	if db != nil {
+		triggerHandler = handlers.NewTriggerHandlerWithDB(
+			database.NewTokenRepository(db),
+			database.NewEventRepository(db),
+		)
+	} else {
+		triggerHandler = handlers.NewTriggerHandler()
+	}
 	pageHandler := handlers.NewPageHandler("./templates", db)
 
 	// Private access gate: if KAVACH_ACCESS_KEY is set, gate all non-trigger routes
@@ -181,6 +201,10 @@ func main() {
 			if token == nil {
 				return c.Status(404).JSON(fiber.Map{"error": "token not found"})
 			}
+			// Verify ownership (fix B10)
+			if token.UserID != defaultUserID {
+				return c.Status(403).JSON(fiber.Map{"error": "access denied"})
+			}
 			return c.JSON(fiber.Map{"token": token})
 		}
 		return c.Status(404).JSON(fiber.Map{"error": "token not found", "message": "Database not connected"})
@@ -211,6 +235,22 @@ func main() {
 				return c.Status(400).JSON(fiber.Map{"error": "invalid token ID"})
 			}
 			tokenRepo := database.NewTokenRepository(database.DB)
+
+			// Verify ownership before update (fix B10)
+			existingToken, err := tokenRepo.GetByID(tokenID)
+			if err != nil || existingToken == nil {
+				if c.Get("HX-Request") == "true" {
+					return c.SendString(`<div class="text-red-400 text-sm p-3">Token not found.</div>`)
+				}
+				return c.Status(404).JSON(fiber.Map{"error": "token not found"})
+			}
+			if existingToken.UserID != defaultUserID {
+				if c.Get("HX-Request") == "true" {
+					return c.SendString(`<div class="text-red-400 text-sm p-3">Access denied.</div>`)
+				}
+				return c.Status(403).JSON(fiber.Map{"error": "access denied"})
+			}
+
 			if err := tokenRepo.Update(tokenID, req.Name, req.Description, isActive); err != nil {
 				if c.Get("HX-Request") == "true" {
 					return c.SendString(`<div class="text-red-400 text-sm p-3">Failed to update token.</div>`)
@@ -241,6 +281,22 @@ func main() {
 				return c.Status(400).JSON(fiber.Map{"error": "invalid token ID"})
 			}
 			tokenRepo := database.NewTokenRepository(database.DB)
+
+			// Verify ownership before delete (fix B10)
+			existingToken, err := tokenRepo.GetByID(tokenID)
+			if err != nil || existingToken == nil {
+				if c.Get("HX-Request") == "true" {
+					return c.Status(404).SendString(`<div class="text-red-400 text-sm p-3">Token not found.</div>`)
+				}
+				return c.Status(404).JSON(fiber.Map{"error": "token not found"})
+			}
+			if existingToken.UserID != defaultUserID {
+				if c.Get("HX-Request") == "true" {
+					return c.Status(403).SendString(`<div class="text-red-400 text-sm p-3">Access denied.</div>`)
+				}
+				return c.Status(403).JSON(fiber.Map{"error": "access denied"})
+			}
+
 			if err := tokenRepo.Delete(tokenID); err != nil {
 				if c.Get("HX-Request") == "true" {
 					return c.Status(500).SendString(`<div class="text-red-400 text-sm p-3">Failed to delete token.</div>`)
@@ -351,12 +407,15 @@ func csrfProtection(allowedOrigins string) fiber.Handler {
 			}
 		}
 
+		// Extract just the origin (scheme+host+port) from the value,
+		// since Referer may include a full path (fix B3)
+		originToCheck := extractOrigin(origin)
+
 		// Check if origin is in the allowed list
 		allowed := false
 		for _, o := range splitOrigins(allowedOrigins) {
-			normalizedOrigin := strings.TrimRight(origin, "/")
-			normalizedAllowed := strings.TrimRight(o, "/")
-			if normalizedOrigin == normalizedAllowed {
+			normalizedAllowed := extractOrigin(strings.TrimRight(o, "/"))
+			if originToCheck == normalizedAllowed {
 				allowed = true
 				break
 			}
@@ -371,6 +430,17 @@ func csrfProtection(allowedOrigins string) fiber.Handler {
 
 		return c.Next()
 	}
+}
+
+// extractOrigin parses a URL and returns only the scheme+host+port (the origin).
+// For example, "http://localhost:8080/tokens/new" -> "http://localhost:8080"
+// If parsing fails, returns the input with trailing slashes removed.
+func extractOrigin(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Host == "" {
+		return strings.TrimRight(rawURL, "/")
+	}
+	return parsed.Scheme + "://" + parsed.Host
 }
 
 // accessGate implements maintenance mode / private access control.
@@ -546,6 +616,29 @@ func handleTokenCreate(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "name and type are required"})
 	}
 
+	// Fix M1: Input length validation to prevent arbitrarily long values
+	const maxNameLen = 128
+	const maxDescLen = 512
+	const maxDomainLen = 255
+	if len(req.Name) > maxNameLen {
+		if c.Get("HX-Request") == "true" {
+			return c.SendString(`<div class="text-red-400 text-sm p-3">Token name must be 128 characters or fewer.</div>`)
+		}
+		return c.Status(400).JSON(fiber.Map{"error": fmt.Sprintf("name must be %d characters or fewer", maxNameLen)})
+	}
+	if len(req.Description) > maxDescLen {
+		if c.Get("HX-Request") == "true" {
+			return c.SendString(`<div class="text-red-400 text-sm p-3">Description must be 512 characters or fewer.</div>`)
+		}
+		return c.Status(400).JSON(fiber.Map{"error": fmt.Sprintf("description must be %d characters or fewer", maxDescLen)})
+	}
+	if len(req.Domain) > maxDomainLen {
+		if c.Get("HX-Request") == "true" {
+			return c.SendString(`<div class="text-red-400 text-sm p-3">Domain must be 255 characters or fewer.</div>`)
+		}
+		return c.Status(400).JSON(fiber.Map{"error": fmt.Sprintf("domain must be %d characters or fewer", maxDomainLen)})
+	}
+
 	// Use the real token service to generate the token
 	baseURL := os.Getenv("TRIGGER_BASE_URL")
 	if baseURL == "" {
@@ -569,9 +662,13 @@ func handleTokenCreate(c *fiber.Ctx) error {
 	generatedToken, err := tokenSvc.GenerateToken(userID, createReq)
 	if err != nil {
 		if c.Get("HX-Request") == "true" {
-			return c.SendString(`<div class="text-red-400 text-sm p-3">Failed to generate token: ` + err.Error() + `</div>`)
+			// Fix B1: HTML-escape error message to prevent XSS
+			escapedErr := html.EscapeString(err.Error())
+			return c.SendString(`<div class="text-red-400 text-sm p-3">Failed to generate token: ` + escapedErr + `</div>`)
 		}
-		return c.Status(500).JSON(fiber.Map{"error": "failed to generate token", "details": err.Error()})
+		// Fix M12: Don't leak internal error details to API consumers
+		log.Printf("Token generation error: %v", err)
+		return c.Status(500).JSON(fiber.Map{"error": "failed to generate token"})
 	}
 
 	// Save to database if connected
@@ -602,13 +699,14 @@ func handleTokenCreate(c *fiber.Ctx) error {
 		tmpl, err := template.ParseFiles("./templates/tokens/token_created.html")
 		if err != nil {
 			log.Printf("Token created template error: %v", err)
-			return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-xl p-5"><p class="text-kavach-accent font-semibold mb-2">Token Created!</p><p class="text-sm text-gray-300">Name: ` + generatedToken.Name + `</p><p class="text-sm text-gray-300 mt-1">Type: ` + string(generatedToken.Type) + `</p><pre class="mt-2 text-xs text-kavach-accent bg-kavach-dark border border-kavach-border rounded-lg p-3 overflow-x-auto">` + generatedToken.Payload + `</pre></div>`)
+			// Use html.EscapeString for safe fallback rendering (fix B1)
+			return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-xl p-5"><p class="text-kavach-accent font-semibold mb-2">Token Created!</p><p class="text-sm text-gray-300">Name: ` + html.EscapeString(generatedToken.Name) + `</p><p class="text-sm text-gray-300 mt-1">Type: ` + html.EscapeString(string(generatedToken.Type)) + `</p><pre class="mt-2 text-xs text-kavach-accent bg-kavach-dark border border-kavach-border rounded-lg p-3 overflow-x-auto">` + html.EscapeString(generatedToken.Payload) + `</pre></div>`)
 		}
 
 		var buf bytes.Buffer
 		if err := tmpl.Execute(&buf, data); err != nil {
 			log.Printf("Token created template render error: %v", err)
-			return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-xl p-5"><p class="text-kavach-accent font-semibold mb-2">Token Created!</p><p class="text-sm text-gray-300">Name: ` + generatedToken.Name + `</p><p class="text-sm text-gray-300 mt-1">Type: ` + string(generatedToken.Type) + `</p><pre class="mt-2 text-xs text-kavach-accent bg-kavach-dark border border-kavach-border rounded-lg p-3 overflow-x-auto">` + generatedToken.Payload + `</pre></div>`)
+			return c.SendString(`<div class="bg-kavach-accent/10 border border-kavach-accent/30 rounded-xl p-5"><p class="text-kavach-accent font-semibold mb-2">Token Created!</p><p class="text-sm text-gray-300">Name: ` + html.EscapeString(generatedToken.Name) + `</p><p class="text-sm text-gray-300 mt-1">Type: ` + html.EscapeString(string(generatedToken.Type)) + `</p><pre class="mt-2 text-xs text-kavach-accent bg-kavach-dark border border-kavach-border rounded-lg p-3 overflow-x-auto">` + html.EscapeString(generatedToken.Payload) + `</pre></div>`)
 		}
 
 		c.Set("Content-Type", "text/html; charset=utf-8")

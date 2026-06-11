@@ -2,6 +2,7 @@ package services
 
 import (
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 type AttackerService struct {
 	geoService *GeoService
 	// In demo mode, we store attackers in memory
+	mu        sync.RWMutex
 	attackers map[string]*models.Attacker
 }
 
@@ -31,20 +33,27 @@ func (s *AttackerService) FindOrCreate(fp *fingerprint.CapturedFingerprint) (*mo
 		hash = "fp_unknown_" + fp.IPAddress
 	}
 
-	// Check if we already have this fingerprint
+	// Fix NEW-2: Use a single write lock for the check-and-update path
+	// to eliminate TOCTOU race between RUnlock and Lock.
+	s.mu.Lock()
 	if attacker, exists := s.attackers[hash]; exists {
-		// Update last seen and increment count
 		attacker.LastSeenAt = time.Now()
 		attacker.TriggerCount++
 		attacker.ThreatLevel = s.calculateThreatLevel(attacker)
+		s.mu.Unlock()
 		log.Printf("Existing attacker correlated: %s (triggers: %d)", hash, attacker.TriggerCount)
 		return attacker, nil
 	}
+	s.mu.Unlock()
 
-	// Enrich with geo data
+	// Enrich with geo data (outside lock - network call)
 	geo, err := s.geoService.Lookup(fp.IPAddress)
 	if err != nil {
 		log.Printf("Geo lookup failed for %s: %v", fp.IPAddress, err)
+		geo = &GeoInfo{IP: fp.IPAddress, Country: "Unknown", City: "Unknown"}
+	}
+	// Nil check for geo (fix B8 - defensive against future changes)
+	if geo == nil {
 		geo = &GeoInfo{IP: fp.IPAddress, Country: "Unknown", City: "Unknown"}
 	}
 
@@ -79,7 +88,19 @@ func (s *AttackerService) FindOrCreate(fp *fingerprint.CapturedFingerprint) (*mo
 		attacker.ThreatLevel = models.ThreatLevelMedium
 	}
 
+	// Double-check under write lock (another goroutine may have created it during geo lookup)
+	s.mu.Lock()
+	if existing, exists := s.attackers[hash]; exists {
+		// Another goroutine created it while we were doing geo lookup
+		existing.LastSeenAt = time.Now()
+		existing.TriggerCount++
+		existing.ThreatLevel = s.calculateThreatLevel(existing)
+		s.mu.Unlock()
+		log.Printf("Existing attacker correlated (race resolved): %s (triggers: %d)", hash, existing.TriggerCount)
+		return existing, nil
+	}
 	s.attackers[hash] = attacker
+	s.mu.Unlock()
 	log.Printf("New attacker profiled: %s from %s, %s", hash, geo.City, geo.Country)
 
 	return attacker, nil
@@ -101,6 +122,8 @@ func (s *AttackerService) calculateThreatLevel(a *models.Attacker) models.Threat
 
 // GetAll returns all known attackers (for demo mode)
 func (s *AttackerService) GetAll() []*models.Attacker {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	result := make([]*models.Attacker, 0, len(s.attackers))
 	for _, a := range s.attackers {
 		result = append(result, a)
@@ -110,6 +133,8 @@ func (s *AttackerService) GetAll() []*models.Attacker {
 
 // GetByID returns an attacker by ID
 func (s *AttackerService) GetByID(id string) *models.Attacker {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	for _, a := range s.attackers {
 		if a.ID.String() == id {
 			return a

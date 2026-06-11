@@ -89,8 +89,8 @@ func (e *EmailSender) Send(payload AlertPayload) error {
 
 	htmlBody := fmt.Sprintf(`
 		<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-			<div style="background: #0A1628; border-radius: 12px; padding: 24px; color: #E2E8F0;">
-				<h1 style="color: #00D4AA; margin: 0 0 4px;">🛡️ Kavach Alert</h1>
+			<div style="background: #0A0A14; border-radius: 12px; padding: 24px; color: #E2E8F0;">
+				<h1 style="color: #7C3AED; margin: 0 0 4px;">🛡️ Kavach Alert</h1>
 				<p style="color: #64748B; margin: 0 0 20px; font-size: 14px;">A canary token was just triggered</p>
 				
 				<div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
@@ -109,7 +109,7 @@ func (e *EmailSender) Send(payload AlertPayload) error {
 				</div>
 
 				<div style="margin-top: 20px; text-align: center;">
-					<a href="https://app.kavach.dev/alerts" style="background: #00D4AA; color: #0A1628; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">View in Dashboard</a>
+					<a href="https://app.kavach.dev/alerts" style="background: #7C3AED; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">View in Dashboard</a>
 				</div>
 			</div>
 		</div>`,

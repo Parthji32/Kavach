@@ -29,8 +29,8 @@
         <div>
             <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Your Token Payload (deploy this)</p>
             <div class="flex items-center gap-2">
-                <code class="flex-1 bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm font-mono text-kavach-accent break-all">{{.Token.Payload}}</code>
-                <button onclick="navigator.clipboard.writeText('{{.Token.Payload}}')" 
+                <code id="token-payload-display" class="flex-1 bg-kavach-dark border border-kavach-border rounded-lg px-4 py-2.5 text-sm font-mono text-kavach-accent break-all">{{.Token.Payload}}</code>
+                <button id="copy-payload-btn"
                     class="shrink-0 bg-kavach-dark border border-kavach-border rounded-lg p-2.5 text-gray-400 hover:text-kavach-accent hover:border-kavach-accent/50 transition"
                     title="Copy to clipboard">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
@@ -61,3 +61,41 @@
         <a href="/tokens" class="text-xs text-gray-400 hover:text-white transition">View all tokens →</a>
     </div>
 </div>
+
+<script>
+// Fix NEW-1: Safe clipboard copy using textContent from the DOM element
+// instead of interpolating payload into a JS string literal.
+// This avoids XSS regardless of what characters the payload contains.
+(function() {
+    var btn = document.getElementById('copy-payload-btn');
+    var payloadEl = document.getElementById('token-payload-display');
+    if (btn && payloadEl) {
+        btn.addEventListener('click', function() {
+            var text = payloadEl.textContent || payloadEl.innerText;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    btn.title = 'Copied!';
+                    btn.classList.add('text-green-400', 'border-green-400/50');
+                    btn.classList.remove('text-gray-400');
+                    setTimeout(function() {
+                        btn.title = 'Copy to clipboard';
+                        btn.classList.remove('text-green-400', 'border-green-400/50');
+                        btn.classList.add('text-gray-400');
+                    }, 2000);
+                });
+            } else {
+                // Fallback for older browsers
+                var textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                btn.title = 'Copied!';
+            }
+        });
+    }
+})();
+</script>
