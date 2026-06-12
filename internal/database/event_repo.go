@@ -70,7 +70,10 @@ func (r *EventRepository) CountToday(userID uuid.UUID) (int, error) {
 	today := time.Now().Truncate(24 * time.Hour)
 	var count int
 	err := r.db.QueryRow(query, userID, today).Scan(&count)
-	return count, err
+	if err != nil {
+		return 0, fmt.Errorf("failed to count today's events: %w", err)
+	}
+	return count, nil
 }
 
 // CountUniqueAttackers returns the number of unique attackers for a user
@@ -83,7 +86,10 @@ func (r *EventRepository) CountUniqueAttackers(userID uuid.UUID) (int, error) {
 	`
 	var count int
 	err := r.db.QueryRow(query, userID).Scan(&count)
-	return count, err
+	if err != nil {
+		return 0, fmt.Errorf("failed to count unique attackers: %w", err)
+	}
+	return count, nil
 }
 
 // GetTopCountries returns attack counts grouped by country
@@ -99,7 +105,7 @@ func (r *EventRepository) GetTopCountries(userID uuid.UUID, limit int) ([]Countr
 	`
 	rows, err := r.db.Query(query, userID, limit)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query top countries: %w", err)
 	}
 	defer rows.Close()
 
@@ -107,9 +113,12 @@ func (r *EventRepository) GetTopCountries(userID uuid.UUID, limit int) ([]Countr
 	for rows.Next() {
 		var s CountryStats
 		if err := rows.Scan(&s.Country, &s.Count); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan country stats: %w", err)
 		}
 		stats = append(stats, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating country stats: %w", err)
 	}
 	return stats, nil
 }
@@ -141,6 +150,9 @@ func (r *EventRepository) queryEvents(query string, args ...interface{}) ([]*mod
 			return nil, fmt.Errorf("failed to scan event: %w", err)
 		}
 		events = append(events, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating events: %w", err)
 	}
 	return events, nil
 }

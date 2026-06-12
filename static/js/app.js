@@ -4,18 +4,61 @@
 (function() {
     'use strict';
 
-    // Copy to clipboard
+    // Copy to clipboard (with fallback for HTTP/non-secure contexts)
     window.copyToClipboard = function(btn, text) {
-        navigator.clipboard.writeText(text).then(function() {
+        if (!text) {
+            console.warn('copyToClipboard: no text provided');
+            return;
+        }
+
+        function onSuccess() {
             var originalHTML = btn.innerHTML;
             btn.innerHTML = '<svg class="w-4 h-4 text-kavach-accent" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
             setTimeout(function() {
                 btn.innerHTML = originalHTML;
             }, 2000);
-        }).catch(function(err) {
+        }
+
+        function onError(err) {
             console.error('Copy failed:', err);
-        });
+            // Show brief error feedback
+            var originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="text-red-400 text-xs">✗</span>';
+            setTimeout(function() {
+                btn.innerHTML = originalHTML;
+            }, 1500);
+        }
+
+        // Use Clipboard API if available (requires HTTPS or localhost)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onSuccess).catch(function(err) {
+                // Fallback to execCommand for HTTP contexts
+                fallbackCopy(text) ? onSuccess() : onError(err);
+            });
+        } else {
+            // Fallback for older browsers or HTTP
+            fallbackCopy(text) ? onSuccess() : onError(new Error('Clipboard unavailable'));
+        }
     };
+
+    // Fallback copy using textarea + execCommand
+    function fallbackCopy(text) {
+        try {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            var success = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            return success;
+        } catch (e) {
+            return false;
+        }
+    }
 
     // Theme toggle (future use)
     window.toggleTheme = function() {
@@ -176,7 +219,7 @@
     window.deleteToken = function(btn) {
         if (!confirm('Are you sure you want to delete this token?')) return;
 
-        var row = btn.closest('tr');
+        var row = btn.closest('tr') || btn.closest('.token-row');
         if (!row) return;
 
         var tokenId = row.getAttribute('data-id');

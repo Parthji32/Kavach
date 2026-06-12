@@ -39,13 +39,13 @@ func (r *TokenRepository) Create(token *models.Token, triggerID string) error {
 // GetByID retrieves a token by its ID
 func (r *TokenRepository) GetByID(id uuid.UUID) (*models.Token, error) {
 	query := `
-		SELECT id, user_id, name, type, description, payload, trigger_url, is_active, trigger_count, last_triggered, created_at, updated_at
+		SELECT id, user_id, name, type, description, payload, trigger_url, trigger_id, is_active, trigger_count, last_triggered, created_at, updated_at
 		FROM tokens WHERE id = $1
 	`
 	token := &models.Token{}
 	err := r.db.QueryRow(query, id).Scan(
 		&token.ID, &token.UserID, &token.Name, &token.Type,
-		&token.Description, &token.Payload, &token.TriggerURL,
+		&token.Description, &token.Payload, &token.TriggerURL, &token.TriggerID,
 		&token.IsActive, &token.TriggerCount, &token.LastTriggered,
 		&token.CreatedAt, &token.UpdatedAt,
 	)
@@ -61,13 +61,13 @@ func (r *TokenRepository) GetByID(id uuid.UUID) (*models.Token, error) {
 // GetByTriggerID retrieves a token by its trigger ID (used when a token is triggered)
 func (r *TokenRepository) GetByTriggerID(triggerID string) (*models.Token, error) {
 	query := `
-		SELECT id, user_id, name, type, description, payload, trigger_url, is_active, trigger_count, last_triggered, created_at, updated_at
+		SELECT id, user_id, name, type, description, payload, trigger_url, trigger_id, is_active, trigger_count, last_triggered, created_at, updated_at
 		FROM tokens WHERE trigger_id = $1 AND is_active = true
 	`
 	token := &models.Token{}
 	err := r.db.QueryRow(query, triggerID).Scan(
 		&token.ID, &token.UserID, &token.Name, &token.Type,
-		&token.Description, &token.Payload, &token.TriggerURL,
+		&token.Description, &token.Payload, &token.TriggerURL, &token.TriggerID,
 		&token.IsActive, &token.TriggerCount, &token.LastTriggered,
 		&token.CreatedAt, &token.UpdatedAt,
 	)
@@ -83,7 +83,7 @@ func (r *TokenRepository) GetByTriggerID(triggerID string) (*models.Token, error
 // ListByUserID retrieves all tokens for a user
 func (r *TokenRepository) ListByUserID(userID uuid.UUID, limit, offset int) ([]*models.Token, error) {
 	query := `
-		SELECT id, user_id, name, type, description, payload, trigger_url, is_active, trigger_count, last_triggered, created_at, updated_at
+		SELECT id, user_id, name, type, description, payload, trigger_url, trigger_id, is_active, trigger_count, last_triggered, created_at, updated_at
 		FROM tokens WHERE user_id = $1
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
@@ -99,7 +99,7 @@ func (r *TokenRepository) ListByUserID(userID uuid.UUID, limit, offset int) ([]*
 		token := &models.Token{}
 		err := rows.Scan(
 			&token.ID, &token.UserID, &token.Name, &token.Type,
-			&token.Description, &token.Payload, &token.TriggerURL,
+			&token.Description, &token.Payload, &token.TriggerURL, &token.TriggerID,
 			&token.IsActive, &token.TriggerCount, &token.LastTriggered,
 			&token.CreatedAt, &token.UpdatedAt,
 		)
@@ -107,6 +107,9 @@ func (r *TokenRepository) ListByUserID(userID uuid.UUID, limit, offset int) ([]*
 			return nil, fmt.Errorf("failed to scan token: %w", err)
 		}
 		tokens = append(tokens, token)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating token rows: %w", err)
 	}
 	return tokens, nil
 }

@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    type VARCHAR(20) NOT NULL, -- url, document, api_key, dns, email
-    description TEXT,
+    name VARCHAR(128) NOT NULL,
+    type VARCHAR(20) NOT NULL, -- url, document, api_key, dns, email, qr_code, cloned_site, web_image, aws_key
+    description VARCHAR(512),
     payload TEXT NOT NULL, -- The token value (URL, fake key, etc.)
     trigger_url VARCHAR(500) NOT NULL, -- Internal trigger endpoint
     trigger_id VARCHAR(64) UNIQUE NOT NULL, -- Short ID used in trigger URLs
@@ -86,13 +86,17 @@ CREATE TABLE IF NOT EXISTS alert_configs (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_tokens_user_id ON tokens(user_id);
-CREATE INDEX idx_tokens_trigger_id ON tokens(trigger_id);
-CREATE INDEX idx_tokens_is_active ON tokens(is_active);
-CREATE INDEX idx_trigger_events_token_id ON trigger_events(token_id);
-CREATE INDEX idx_trigger_events_attacker_id ON trigger_events(attacker_id);
-CREATE INDEX idx_trigger_events_created_at ON trigger_events(created_at DESC);
-CREATE INDEX idx_attackers_fingerprint ON attackers(fingerprint);
-CREATE INDEX idx_attackers_ip_address ON attackers(ip_address);
-CREATE INDEX idx_attackers_last_seen ON attackers(last_seen_at DESC);
-CREATE INDEX idx_alert_configs_user_id ON alert_configs(user_id);
+CREATE INDEX IF NOT EXISTS idx_tokens_user_id ON tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_tokens_trigger_id ON tokens(trigger_id);
+CREATE INDEX IF NOT EXISTS idx_tokens_is_active ON tokens(is_active);
+CREATE INDEX IF NOT EXISTS idx_tokens_user_active ON tokens(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_trigger_events_token_id ON trigger_events(token_id);
+CREATE INDEX IF NOT EXISTS idx_trigger_events_token_created ON trigger_events(token_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_trigger_events_attacker_id ON trigger_events(attacker_id);
+CREATE INDEX IF NOT EXISTS idx_trigger_events_created_at ON trigger_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_trigger_events_country ON trigger_events(country) WHERE country != '';
+CREATE INDEX IF NOT EXISTS idx_trigger_events_fingerprint ON trigger_events(fingerprint) WHERE fingerprint != '';
+CREATE INDEX IF NOT EXISTS idx_attackers_fingerprint ON attackers(fingerprint);
+CREATE INDEX IF NOT EXISTS idx_attackers_ip_address ON attackers(ip_address);
+CREATE INDEX IF NOT EXISTS idx_attackers_last_seen ON attackers(last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alert_configs_user_id ON alert_configs(user_id);

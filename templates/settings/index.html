@@ -9,7 +9,7 @@
     <div class="bg-kavach-darker border border-kavach-border rounded-xl p-6">
         <h2 class="text-sm font-semibold text-white mb-4">Profile</h2>
         <form class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
                     <input type="text" value="Parth Jindal"
@@ -42,8 +42,8 @@
                     <p class="text-sm text-gray-300">Email digest</p>
                     <p class="text-xs text-gray-500">Daily summary of all token activity</p>
                 </div>
-                <button class="w-10 h-5 rounded-full bg-kavach-accent/30 relative transition">
-                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-kavach-accent transition-transform translate-x-5"></span>
+                <button onclick="toggleSwitch(this)" class="w-10 h-5 rounded-full bg-kavach-accent/30 relative transition" data-on="true">
+                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-kavach-accent transition-transform duration-200 translate-x-5"></span>
                 </button>
             </div>
             <div class="flex items-center justify-between">
@@ -51,8 +51,8 @@
                     <p class="text-sm text-gray-300">Critical alerts only</p>
                     <p class="text-xs text-gray-500">Only notify on critical severity events</p>
                 </div>
-                <button class="w-10 h-5 rounded-full bg-gray-600 relative transition">
-                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-gray-400 transition-transform"></span>
+                <button onclick="toggleSwitch(this)" class="w-10 h-5 rounded-full bg-gray-600 relative transition" data-on="false">
+                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-gray-400 transition-transform duration-200"></span>
                 </button>
             </div>
             <div class="flex items-center justify-between">
@@ -60,8 +60,8 @@
                     <p class="text-sm text-gray-300">Auto-deactivate triggered tokens</p>
                     <p class="text-xs text-gray-500">Disable tokens after first trigger</p>
                 </div>
-                <button class="w-10 h-5 rounded-full bg-gray-600 relative transition">
-                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-gray-400 transition-transform"></span>
+                <button onclick="toggleSwitch(this)" class="w-10 h-5 rounded-full bg-gray-600 relative transition" data-on="false">
+                    <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-gray-400 transition-transform duration-200"></span>
                 </button>
             </div>
         </div>
@@ -75,10 +75,37 @@
                 <p class="text-sm text-gray-300">Delete account</p>
                 <p class="text-xs text-gray-500">Permanently delete your account and all tokens</p>
             </div>
-            <button class="border border-red-500/50 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+            <button onclick="alert('🚧 Account deletion is not yet available')" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition">
                 Delete Account
             </button>
         </div>
     </div>
 </div>
+
+<script>
+function toggleSwitch(btn) {
+    const isOn = btn.dataset.on === 'true';
+    const dot = btn.querySelector('span');
+    if (isOn) {
+        // Turn off
+        btn.dataset.on = 'false';
+        btn.classList.remove('bg-kavach-accent/30');
+        btn.classList.add('bg-gray-600');
+        dot.classList.remove('bg-kavach-accent', 'translate-x-5');
+        dot.classList.add('bg-gray-400');
+    } else {
+        // Turn on
+        btn.dataset.on = 'true';
+        btn.classList.remove('bg-gray-600');
+        btn.classList.add('bg-kavach-accent/30');
+        dot.classList.remove('bg-gray-400');
+        dot.classList.add('bg-kavach-accent', 'translate-x-5');
+    }
+}
+// Profile form — show saved notice
+document.querySelector('form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('✓ Profile settings will be saved once the backend is connected.');
+});
+</script>
 {{end}}

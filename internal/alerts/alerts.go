@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/parthjindal/kavach/internal/fingerprint"
@@ -84,7 +86,8 @@ func (e *EmailSender) IsConfigured() bool {
 
 // Send sends an email alert via Resend
 func (e *EmailSender) Send(payload AlertPayload) error {
-	// Build email content
+	// Build email content — all user-controlled fields MUST be HTML-escaped
+	// to prevent XSS via crafted User-Agent or other attacker-controlled headers
 	subject := fmt.Sprintf("🚨 Kavach Alert: Token '%s' triggered!", payload.Token.Name)
 
 	htmlBody := fmt.Sprintf(`
@@ -113,14 +116,14 @@ func (e *EmailSender) Send(payload AlertPayload) error {
 				</div>
 			</div>
 		</div>`,
-		payload.Token.Name,
-		payload.Token.Type,
+		html.EscapeString(payload.Token.Name),
+		html.EscapeString(string(payload.Token.Type)),
 		payload.TriggeredAt.Format("Jan 2, 2006 3:04 PM MST"),
-		payload.Fingerprint.IPAddress,
-		payload.Fingerprint.City, payload.Fingerprint.Country,
-		payload.Fingerprint.Browser,
-		payload.Fingerprint.OS,
-		payload.Fingerprint.UserAgent,
+		html.EscapeString(payload.Fingerprint.IPAddress),
+		html.EscapeString(payload.Fingerprint.City), html.EscapeString(payload.Fingerprint.Country),
+		html.EscapeString(payload.Fingerprint.Browser),
+		html.EscapeString(payload.Fingerprint.OS),
+		html.EscapeString(payload.Fingerprint.UserAgent),
 	)
 
 	// Send via Resend API
@@ -174,7 +177,8 @@ func NewSlackSender() *SlackSender {
 
 // IsConfigured returns true if Slack alerts are configured
 func (s *SlackSender) IsConfigured() bool {
-	return s.webhookURL != ""
+	// Validate webhook URL format to prevent SSRF
+	return s.webhookURL != "" && strings.HasPrefix(s.webhookURL, "https://hooks.slack.com/")
 }
 
 // Send sends an alert to Slack

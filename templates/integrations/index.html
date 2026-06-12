@@ -21,7 +21,7 @@
                 {{if .IsSlackOn}}Connected{{else}}Not configured{{end}}
             </span>
         </div>
-        <form hx-post="/api/v1/integrations/slack" hx-target="#slack-result" hx-swap="innerHTML">
+        <form hx-post="/api/v1/integrations/slack" hx-target="#slack-result" hx-swap="innerHTML" hx-disabled-elt="find button[type=submit]">
             <div>
                 <label class="block text-xs font-medium text-gray-400 mb-1.5">Webhook URL</label>
                 <input type="url" name="webhook_url" value="{{.SlackURL}}"
@@ -30,7 +30,7 @@
             </div>
             <div class="flex items-center gap-3 mt-3">
                 <button type="submit" class="bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-4 py-2 rounded-lg text-xs font-semibold transition">Save</button>
-                <button type="button" class="text-xs text-gray-400 hover:text-white transition">Test Connection</button>
+                <button type="button" onclick="alert('🚧 Coming soon — Slack integration is under development')" class="text-xs text-gray-400 hover:text-white transition">Test Connection</button>
             </div>
             <div id="slack-result" class="mt-2"></div>
         </form>
@@ -52,7 +52,7 @@
                 {{if .IsEmailOn}}Connected{{else}}Not configured{{end}}
             </span>
         </div>
-        <form hx-post="/api/v1/integrations/email" hx-target="#email-result" hx-swap="innerHTML">
+        <form hx-post="/api/v1/integrations/email" hx-target="#email-result" hx-swap="innerHTML" hx-disabled-elt="find button[type=submit]">
             <div class="space-y-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-400 mb-1.5">Send alerts to</label>
@@ -69,7 +69,7 @@
             </div>
             <div class="flex items-center gap-3 mt-3">
                 <button type="submit" class="bg-kavach-accent hover:bg-kavach-accent-hover text-kavach-dark px-4 py-2 rounded-lg text-xs font-semibold transition">Save</button>
-                <button type="button" class="text-xs text-gray-400 hover:text-white transition">Send Test</button>
+                <button type="button" onclick="alert('🚧 Coming soon — Email test is under development')" class="text-xs text-gray-400 hover:text-white transition">Send Test</button>
             </div>
             <div id="email-result" class="mt-2"></div>
         </form>
@@ -86,7 +86,7 @@
                 <p class="text-xs text-gray-500">POST alert payloads to any endpoint</p>
             </div>
         </div>
-        <form hx-post="/api/v1/integrations/webhook" hx-target="#webhook-result" hx-swap="innerHTML">
+        <form hx-post="/api/v1/integrations/webhook" hx-target="#webhook-result" hx-swap="innerHTML" hx-disabled-elt="find button[type=submit]">
             <div>
                 <label class="block text-xs font-medium text-gray-400 mb-1.5">Webhook URL</label>
                 <input type="url" name="webhook_url"

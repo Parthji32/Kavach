@@ -46,16 +46,19 @@ func Connect() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// Connection pool settings
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(1 * time.Minute)
 
 	if err := db.Ping(); err != nil {
+		db.Close() // Clean up on failed ping
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	DB = db
-	log.Println("Database connected successfully")
+	log.Println("✓ Database connected successfully")
 	return db, nil
 }
 
@@ -65,6 +68,20 @@ func Close() {
 		DB.Close()
 		log.Println("Database connection closed")
 	}
+}
+
+// RunMigrations executes the schema migration file
+func RunMigrations(db *sql.DB) error {
+	schema, err := os.ReadFile("./migrations/001_initial_schema.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read migration file: %w", err)
+	}
+	_, err = db.Exec(string(schema))
+	if err != nil {
+		return fmt.Errorf("failed to execute migration: %w", err)
+	}
+	log.Println("✓ Database migrations applied")
+	return nil
 }
 
 func getEnvOrDefault(key, defaultVal string) string {

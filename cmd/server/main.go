@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/subtle"
 	"fmt"
 	"html"
 	"html/template"
@@ -25,7 +26,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// defaultUserID is the ID of the default admin user, used when no auth is configured
+// defaultUserID is the ID of the default admin user, used when no auth is configured.
+// Set once during startup (before server starts), read-only after that — safe for concurrent access.
 var defaultUserID uuid.UUID
 
 func main() {
@@ -72,9 +74,25 @@ func main() {
 		DisableStartupMessage: false,
 	})
 
-	app.Use(recover.New())
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: os.Getenv("ENV") != "production",
+	}))
+
+	// Security headers
+	app.Use(func(c *fiber.Ctx) error {
+		c.Set("X-Content-Type-Options", "nosniff")
+		c.Set("X-Frame-Options", "DENY")
+		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		if os.Getenv("ENV") == "production" {
+			c.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+		return c.Next()
+	})
+
 	app.Use(logger.New(logger.Config{
-		Format: "[${time}] ${status} - ${method} ${path} - ${ip} - ${latency}\n",
+		Format:     "[${time}] ${status} - ${method} ${path} - ${ip} - ${latency}\n",
+		TimeFormat: "15:04:05",
 	}))
 
 	// CORS: restrict to allowed origins (fix CRITICAL issue #15)
@@ -129,7 +147,8 @@ func main() {
 
 	// ===== TOKEN TRIGGER ROUTES (PUBLIC) =====
 	trigger := app.Group("/t")
-	// Demo trigger: rate-limited, returns JSON for landing page interactive demo
+	// Demo trigger: rate-limited, returns JSON for landing page interactive demo.
+	// NOTE: "demo" is a reserved trigger path — UUIDs prevent collision with real tokens.
 	trigger.Get("/demo", limiter.New(limiter.Config{
 		Max:        3,
 		Expiration: 1 * time.Hour,
@@ -184,6 +203,21 @@ func main() {
 
 	// ===== REST API =====
 	api := app.Group("/api/v1")
+
+	// Rate limit API endpoints to prevent abuse (fix S05)
+	api.Use(limiter.New(limiter.Config{
+		Max:        60,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return "api:" + c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(429).JSON(fiber.Map{
+				"error":   "rate_limited",
+				"message": "Too many requests. Please slow down.",
+			})
+		},
+	}))
 
 	// NOTE: Auth middleware disabled for now — access gate (KAVACH_ACCESS_KEY) provides security.
 	// TODO: Re-enable after login/signup flow is working for users.
@@ -413,7 +447,7 @@ func csrfProtection(allowedOrigins string) fiber.Handler {
 		}
 
 		// Skip CSRF for trigger routes (they're public honeypot endpoints)
-		if len(c.Path()) > 2 && c.Path()[:3] == "/t/" {
+		if strings.HasPrefix(c.Path(), "/t/") {
 			return c.Next()
 		}
 
@@ -422,7 +456,15 @@ func csrfProtection(allowedOrigins string) fiber.Handler {
 		if origin == "" {
 			origin = c.Get("Referer")
 			if origin == "" {
-				// Allow requests with no Origin (e.g., same-origin, curl, etc.)
+				// Block requests with no Origin/Referer on state-changing methods
+				// to API endpoints (prevents CSRF from file:// or privacy extensions)
+				if strings.HasPrefix(c.Path(), "/api/") {
+					return c.Status(403).JSON(fiber.Map{"error": "forbidden", "message": "Origin header required"})
+				}
+				// Allow HTMX form submissions from same-origin (HTMX adds HX-Request header)
+				if c.Get("HX-Request") != "true" {
+					return c.Status(403).JSON(fiber.Map{"error": "forbidden", "message": "Origin header required"})
+				}
 				return c.Next()
 			}
 		}
@@ -496,20 +538,22 @@ func accessGate() fiber.Handler {
 		}
 
 		// Check query param
-		if c.Query("key") == accessKey {
+		if subtle.ConstantTimeCompare([]byte(c.Query("key")), []byte(accessKey)) == 1 {
 			// Set cookie so user doesn't need ?key= on every request
 			c.Cookie(&fiber.Cookie{
 				Name:     "kavach_access",
 				Value:    accessKey,
 				HTTPOnly: true,
 				SameSite: "Lax",
+				Secure:   os.Getenv("ENV") == "production",
+				Path:     "/",
 				Expires:  time.Now().Add(24 * time.Hour),
 			})
 			return c.Next()
 		}
 
 		// Check cookie
-		if c.Cookies("kavach_access") == accessKey {
+		if subtle.ConstantTimeCompare([]byte(c.Cookies("kavach_access")), []byte(accessKey)) == 1 {
 			return c.Next()
 		}
 
@@ -636,6 +680,18 @@ func handleTokenCreate(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "name and type are required"})
 	}
 
+	// Validate token type against allowed types (fix S06)
+	validTypes := map[string]bool{
+		"url": true, "document": true, "api_key": true, "dns": true,
+		"email": true, "qr_code": true, "cloned_site": true, "web_image": true, "aws_key": true,
+	}
+	if !validTypes[req.Type] {
+		if c.Get("HX-Request") == "true" {
+			return c.SendString(`<div class="text-red-400 text-sm p-3">Invalid token type.</div>`)
+		}
+		return c.Status(400).JSON(fiber.Map{"error": "invalid token type", "valid_types": []string{"url", "document", "api_key", "dns", "email", "qr_code", "cloned_site", "web_image", "aws_key"}})
+	}
+
 	// Fix M1: Input length validation to prevent arbitrarily long values
 	const maxNameLen = 128
 	const maxDescLen = 512
@@ -696,6 +752,11 @@ func handleTokenCreate(c *fiber.Ctx) error {
 		tokenRepo := database.NewTokenRepository(database.DB)
 		if saveErr := tokenRepo.Create(generatedToken, generatedToken.TriggerID); saveErr != nil {
 			log.Printf("Warning: token generated but failed to save to DB: %v", saveErr)
+			// Return error to user instead of silently losing data
+			if c.Get("HX-Request") == "true" {
+				return c.SendString(`<div class="text-red-400 text-sm p-3">Token generated but failed to save. Please try again.</div>`)
+			}
+			return c.Status(500).JSON(fiber.Map{"error": "token created but failed to save to database", "token": generatedToken})
 		}
 	}
 

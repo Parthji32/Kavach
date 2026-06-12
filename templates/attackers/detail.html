@@ -19,7 +19,7 @@
         <!-- Identity Card -->
         <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5">
             <h2 class="text-sm font-semibold text-white mb-4">Identity</h2>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">IP Address</p>
                     <code class="text-sm font-mono text-kavach-accent">{{.Attacker.IPAddress}}</code>
@@ -105,7 +105,11 @@
             {{end}}
             <textarea placeholder="Add notes about this attacker..."
                 class="w-full mt-3 bg-kavach-dark border border-kavach-border rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:border-kavach-accent outline-none resize-none"
-                rows="3"></textarea>
+                rows="3">{{.Attacker.Notes}}</textarea>
+            <button onclick="alert('✓ Notes saving will be available once the API endpoint is built')" 
+                class="mt-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-kavach-accent/10 border border-kavach-accent/30 text-kavach-accent hover:bg-kavach-accent/20 transition">
+                Save Notes
+            </button>
         </div>
     </div>
 </div>

@@ -1,22 +1,22 @@
 {{define "content"}}
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
     <h1 class="text-2xl font-semibold text-white">Alert History</h1>
-    <div class="flex items-center gap-3">
-        <select class="bg-kavach-dark border border-kavach-border rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none focus:border-kavach-accent">
-            <option>All Severities</option>
-            <option>Critical</option>
-            <option>Warning</option>
-            <option>Info</option>
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <select id="filter-severity" onchange="filterAlerts()" class="bg-kavach-dark border border-kavach-border rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none focus:border-kavach-accent">
+            <option value="">All Severities</option>
+            <option value="critical">Critical</option>
+            <option value="warning">Warning</option>
+            <option value="info">Info</option>
         </select>
-        <select class="bg-kavach-dark border border-kavach-border rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none focus:border-kavach-accent">
-            <option>All Types</option>
-            <option>URL</option>
-            <option>Document</option>
-            <option>API Key</option>
-            <option>DNS</option>
-            <option>Email</option>
+        <select id="filter-type" onchange="filterAlerts()" class="bg-kavach-dark border border-kavach-border rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none focus:border-kavach-accent">
+            <option value="">All Types</option>
+            <option value="url">URL</option>
+            <option value="document">Document</option>
+            <option value="api_key">API Key</option>
+            <option value="dns">DNS</option>
+            <option value="email">Email</option>
         </select>
-        <select class="bg-kavach-dark border border-kavach-border rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none focus:border-kavach-accent">
+        <select id="filter-time" class="bg-kavach-dark border border-kavach-border rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none focus:border-kavach-accent">
             <option>Last 24 hours</option>
             <option>Last 7 days</option>
             <option>Last 30 days</option>
@@ -26,29 +26,29 @@
 </div>
 
 <!-- Alert Stats -->
-<div class="grid grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-kavach-darker border border-kavach-border rounded-xl p-4">
         <p class="text-[10px] uppercase tracking-wider text-gray-500">Total Alerts</p>
         <p class="text-2xl font-bold font-mono text-white mt-1">{{len .Alerts}}</p>
     </div>
     <div class="bg-kavach-darker border border-red-500/30 rounded-xl p-4">
         <p class="text-[10px] uppercase tracking-wider text-gray-500">Critical</p>
-        <p class="text-2xl font-bold font-mono text-red-400 mt-1">4</p>
+        <p class="text-2xl font-bold font-mono text-red-400 mt-1" id="count-critical">0</p>
     </div>
     <div class="bg-kavach-darker border border-amber-500/30 rounded-xl p-4">
         <p class="text-[10px] uppercase tracking-wider text-gray-500">Warning</p>
-        <p class="text-2xl font-bold font-mono text-amber-400 mt-1">2</p>
+        <p class="text-2xl font-bold font-mono text-amber-400 mt-1" id="count-warning">0</p>
     </div>
     <div class="bg-kavach-darker border border-blue-500/30 rounded-xl p-4">
         <p class="text-[10px] uppercase tracking-wider text-gray-500">Info</p>
-        <p class="text-2xl font-bold font-mono text-blue-400 mt-1">2</p>
+        <p class="text-2xl font-bold font-mono text-blue-400 mt-1" id="count-info">0</p>
     </div>
 </div>
 
 <!-- Alert List -->
 <div class="bg-kavach-darker border border-kavach-border rounded-xl p-5" id="alert-list" hx-get="/api/v1/alerts/feed" hx-trigger="every 30s" hx-swap="innerHTML">
     {{range .Alerts}}
-    <div class="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-kavach-border mb-2 hover:border-kavach-accent/30 transition">
+    <div class="alert-item flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-kavach-border mb-2 hover:border-kavach-accent/30 transition" data-severity="{{.Severity}}" data-type="{{.TokenType}}">
         <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
             {{if eq .Severity "critical"}}bg-red-500/15 text-red-400
             {{else if eq .Severity "warning"}}bg-amber-500/15 text-amber-400
@@ -79,4 +79,33 @@
     </div>
     {{end}}
 </div>
+
+<script>
+// Filter alerts by severity and type
+function filterAlerts() {
+    const severity = document.getElementById('filter-severity').value;
+    const type = document.getElementById('filter-type').value;
+    document.querySelectorAll('.alert-item').forEach(item => {
+        const matchSev = !severity || item.dataset.severity === severity;
+        const matchType = !type || item.dataset.type === type;
+        item.style.display = (matchSev && matchType) ? '' : 'none';
+    });
+}
+
+// Count alerts by severity on page load
+(function() {
+    const items = document.querySelectorAll('.alert-item');
+    let counts = { critical: 0, warning: 0, info: 0 };
+    items.forEach(item => {
+        const sev = item.dataset.severity;
+        if (counts[sev] !== undefined) counts[sev]++;
+    });
+    const critEl = document.getElementById('count-critical');
+    const warnEl = document.getElementById('count-warning');
+    const infoEl = document.getElementById('count-info');
+    if (critEl) critEl.textContent = counts.critical;
+    if (warnEl) warnEl.textContent = counts.warning;
+    if (infoEl) infoEl.textContent = counts.info;
+})();
+</script>
 {{end}}

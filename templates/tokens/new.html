@@ -9,7 +9,7 @@
 
 <!-- Create Token Form -->
 <div class="max-w-2xl">
-    <form hx-post="/api/v1/tokens" hx-target="#result" hx-swap="innerHTML" class="space-y-6">
+    <form hx-post="/api/v1/tokens" hx-target="#result" hx-swap="innerHTML" hx-disabled-elt="find button[type=submit]" class="space-y-6">
         
         <!-- Token Name -->
         <div>

@@ -1,8 +1,8 @@
 {{define "content"}}
 <!-- Top Bar -->
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
     <h1 class="text-2xl font-semibold text-white">Dashboard</h1>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3 sm:gap-4">
         <!-- Notification bell -->
         <div class="relative" id="notification-wrapper">
             <button onclick="toggleNotifications()" class="relative text-gray-400 hover:text-white transition">
@@ -12,7 +12,7 @@
                 {{end}}
             </button>
             <!-- Notification Dropdown -->
-            <div id="notification-menu" class="hidden absolute right-0 top-10 w-80 bg-kavach-darker border border-kavach-border rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden">
+            <div id="notification-menu" class="hidden absolute right-0 top-10 w-[calc(100vw-2rem)] sm:w-80 max-w-80 bg-kavach-darker border border-kavach-border rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden">
                 <div class="flex items-center justify-between px-4 py-3 border-b border-kavach-border">
                     <h3 class="text-sm font-semibold text-white">Notifications</h3>
                     {{if gt .AlertCount 0}}
@@ -107,7 +107,7 @@
         </div>
 
         <!-- Alert list (HTMX auto-refresh every 30s) -->
-        <div id="alert-feed" hx-get="/api/v1/alerts/feed" hx-trigger="every 30s" hx-swap="innerHTML">
+        <div id="alert-feed" hx-get="/api/v1/alerts/feed" hx-trigger="every 30s" hx-swap="innerHTML" hx-on::response-error="this.innerHTML='<p class=\'text-xs text-red-400 p-3\'>Failed to refresh alerts</p>'">
             {{range .RecentAlerts}}
             <div class="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-kavach-border mb-2 hover:border-kavach-accent/30 transition">
                 <!-- Icon based on severity -->
@@ -195,7 +195,8 @@
         <h2 class="text-sm font-semibold text-white">Your Tokens</h2>
         <a href="/tokens" class="text-xs text-kavach-accent hover:text-kavach-accent-hover transition">View all →</a>
     </div>
-    <table class="w-full">
+    <div class="overflow-x-auto">
+    <table class="w-full min-w-[600px]">
         <thead>
             <tr class="text-[11px] uppercase tracking-wider text-gray-500">
                 <th class="text-left px-5 py-3">Name</th>
@@ -239,5 +240,6 @@
             {{end}}
         </tbody>
     </table>
+    </div>
 </div>
 {{end}}

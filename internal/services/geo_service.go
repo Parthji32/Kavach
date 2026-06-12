@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -52,6 +53,11 @@ func (s *GeoService) buildLookupURL(ip string) string {
 
 // Lookup enriches an IP address with geo data from ipinfo.io
 func (s *GeoService) Lookup(ip string) (*GeoInfo, error) {
+	// Validate IP to prevent SSRF (attacker-controlled headers could inject paths)
+	if net.ParseIP(ip) == nil {
+		return s.mockLookup(ip), nil
+	}
+
 	if !s.IsConfigured() {
 		return s.mockLookup(ip), nil
 	}

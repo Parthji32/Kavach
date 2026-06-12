@@ -59,8 +59,16 @@ func (h *TriggerHandler) HandleTrigger(c *fiber.Ctx) error {
 	// 1. Capture the fingerprint from the request
 	fp := captureFromFiber(c)
 
-	// 2. Log the full fingerprint
-	fpJSON, _ := json.Marshal(fp)
+	// 2. Log fingerprint (redact sensitive headers)
+	logFp := *fp
+	safeHeaders := make(map[string]string)
+	for k, v := range fp.Headers {
+		if k != "Cookie" && k != "Authorization" && k != "X-Access-Key" {
+			safeHeaders[k] = v
+		}
+	}
+	logFp.Headers = safeHeaders
+	fpJSON, _ := json.Marshal(logFp)
 	log.Printf("📋 Fingerprint: %s", string(fpJSON))
 
 	// 3. Look up which token this trigger belongs to
@@ -82,7 +90,7 @@ func (h *TriggerHandler) HandleTrigger(c *fiber.Ctx) error {
 	geo, err := h.geoService.Lookup(fp.IPAddress)
 	if err != nil {
 		log.Printf("⚠️  Geo lookup failed for %s: %v", fp.IPAddress, err)
-	} else {
+	} else if geo != nil {
 		fp.Country = geo.Country
 		fp.City = geo.City
 		fp.Region = geo.Region
@@ -297,7 +305,6 @@ func (h *TriggerHandler) HandleDemoTrigger(c *fiber.Ctx) error {
 	// 4. Return JSON response for the landing page
 	return c.JSON(fiber.Map{
 		"ip":          redactedIP,
-		"ip_full":     fp.IPAddress, // full IP — shows capability (visitor's own data)
 		"city":        fp.City,
 		"region":      fp.Region,
 		"country":     fp.Country,
@@ -319,6 +326,9 @@ func (h *TriggerHandler) HandleDemoTrigger(c *fiber.Ctx) error {
 
 // redactIP partially masks an IP address for display (e.g., "103.45.●●.●●")
 func redactIP(ip string) string {
+	if ip == "" {
+		return "●●●.●●.●●●.●●"
+	}
 	parts := strings.Split(ip, ".")
 	if len(parts) == 4 {
 		return parts[0] + "." + parts[1] + ".●●.●●"

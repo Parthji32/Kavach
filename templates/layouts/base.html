@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- Prevent FOUC while Tailwind loads -->
+    <style>body{opacity:0;transition:opacity 0.1s}body.loaded{opacity:1}</style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}} — Kavach</title>
     
@@ -39,8 +41,9 @@
             width: 64px;
             transition: width 0.2s ease;
         }
-        .sidebar:hover, .sidebar.expanded {
+        .sidebar:hover, .sidebar.expanded, .sidebar.pinned {
             width: 224px;
+            transition-delay: 0.15s;
         }
         .sidebar .nav-label,
         .sidebar .logo-text,
@@ -267,5 +270,6 @@
         });
     </script>
 
+<script>document.body.classList.add('loaded')</script>
 </body>
 </html>

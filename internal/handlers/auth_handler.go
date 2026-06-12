@@ -3,7 +3,9 @@ package handlers
 import (
 	"database/sql"
 	"log"
+	"net/mail"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,6 +34,10 @@ func isProduction() bool {
 	return os.Getenv("ENV") == "production"
 }
 
+// maxCredentialLen caps credential length to prevent DoS via bcrypt on huge inputs.
+// bcrypt itself truncates at 72 bytes, but we cap at 128 to be explicit.
+const maxCredentialLen = 128
+
 // Signup handles user registration
 // POST /api/v1/auth/signup
 func (h *AuthHandler) Signup(c *fiber.Ctx) error {
@@ -50,10 +56,42 @@ func (h *AuthHandler) Signup(c *fiber.Ctx) error {
 		})
 	}
 
+	// Validate email format (fix S09)
+	if _, err := mail.ParseAddress(req.Email); err != nil || !strings.Contains(req.Email, ".") {
+		return c.Status(400).JSON(fiber.Map{
+			"error":   "validation_error",
+			"message": "Invalid email address format",
+		})
+	}
+
+	// Validate email length to prevent abuse
+	if len(req.Email) > 254 {
+		return c.Status(400).JSON(fiber.Map{
+			"error":   "validation_error",
+			"message": "Email address is too long",
+		})
+	}
+
 	if len(req.Credential) < 8 {
 		return c.Status(400).JSON(fiber.Map{
 			"error":   "validation_error",
 			"message": "Credential must be at least 8 characters",
+		})
+	}
+
+	// Cap credential length to prevent DoS (bcrypt is intentionally slow on long inputs)
+	if len(req.Credential) > maxCredentialLen {
+		return c.Status(400).JSON(fiber.Map{
+			"error":   "validation_error",
+			"message": "Credential must be 128 characters or fewer",
+		})
+	}
+
+	// Cap name length
+	if len(req.Name) > 128 {
+		return c.Status(400).JSON(fiber.Map{
+			"error":   "validation_error",
+			"message": "Name must be 128 characters or fewer",
 		})
 	}
 
@@ -92,7 +130,8 @@ func (h *AuthHandler) Signup(c *fiber.Ctx) error {
 
 	_, err = h.db.Exec(
 		`INSERT INTO users (id, email, pass_hash, name, company, plan, is_active, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 ON CONFLICT (email) DO NOTHING`,
 		user.ID, user.Email, user.PassHash, user.Name, user.Company,
 		user.Plan, user.IsActive, user.CreatedAt, user.UpdatedAt,
 	)
@@ -101,6 +140,16 @@ func (h *AuthHandler) Signup(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{
 			"error":   "internal_error",
 			"message": "Failed to create account",
+		})
+	}
+
+	// Check if we actually inserted (ON CONFLICT = email already taken)
+	var checkID uuid.UUID
+	_ = h.db.QueryRow("SELECT id FROM users WHERE email = $1", user.Email).Scan(&checkID)
+	if checkID != user.ID {
+		return c.Status(409).JSON(fiber.Map{
+			"error":   "conflict",
+			"message": "An account with this email already exists",
 		})
 	}
 
@@ -121,6 +170,7 @@ func (h *AuthHandler) Signup(c *fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   isProduction(),
 		SameSite: "Lax",
+		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
@@ -147,6 +197,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{
 			"error":   "validation_error",
 			"message": "Email and credential are required",
+		})
+	}
+
+	// Cap credential length on login too — prevents bcrypt DoS
+	if len(req.Credential) > maxCredentialLen {
+		return c.Status(401).JSON(fiber.Map{
+			"error":   "invalid_credentials",
+			"message": "Invalid email or credential",
 		})
 	}
 
@@ -205,6 +263,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   isProduction(),
 		SameSite: "Lax",
+		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 
@@ -223,6 +282,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		Name:     "kavach_token",
 		Value:    "",
 		HTTPOnly: true,
+		Path:     "/",
 		Expires:  time.Now().Add(-1 * time.Hour),
 	})
 

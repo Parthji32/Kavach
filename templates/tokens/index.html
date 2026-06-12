@@ -210,5 +210,24 @@ function filterTokens(btn, type) {
         }
     });
 }
+
+// Calculate and display filter counts on page load
+(function() {
+    // Only count from table (not mobile cards which duplicate rows)
+    const rows = document.querySelectorAll('.token-table-wrapper .token-row[data-type]');
+    const counts = {};
+    rows.forEach(row => {
+        const t = row.dataset.type;
+        if (t) counts[t] = (counts[t] || 0) + 1;
+    });
+    // Update pill count badges (skip "all" — already shows total)
+    document.querySelectorAll('.filter-pill[data-filter]').forEach(pill => {
+        const f = pill.dataset.filter;
+        if (f !== 'all') {
+            const countEl = pill.querySelector('.f-count');
+            if (countEl) countEl.textContent = counts[f] || '0';
+        }
+    });
+})();
 </script>
 {{end}}
