@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A0A14">
 <title>Kavach — Armor That Fights Back | Cybersecurity Deception Platform</title>
 <meta name="description" content="Deploy invisible traps across your infrastructure. When an intruder touches one — we capture their full identity in seconds.">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #0A0A14; color: #e2e8f0; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { overflow-x: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #0A0A14; color: #e2e8f0; overflow-x: hidden; }
 a { text-decoration: none; color: inherit; }
 
 /* ===== NAV ===== */
@@ -33,7 +35,7 @@ nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 40
 .btn-secondary:hover { border-color: rgba(124,58,237,0.5); }
 
 /* ===== MAP VISUAL ===== */
-.hero-map { position: relative; background: radial-gradient(ellipse at 30% 50%, #0F0D1A 0%, #0A0A14 70%); border-radius: 16px; border: 1px solid rgba(124,58,237,0.06); padding: 24px; overflow: hidden; }
+.hero-map { position: relative; background: radial-gradient(ellipse at 50% 40%, #0F0D1A 0%, #0A0A14 70%); border-radius: 16px; border: 1px solid rgba(124,58,237,0.06); padding: 24px; overflow: hidden; }
 .hero-map::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(124,58,237,0.025) 1px, transparent 1px); background-size: 24px 24px; pointer-events: none; }
 .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; position: relative; z-index: 5; }
 .map-title { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; }
@@ -55,9 +57,10 @@ nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 40
 /* Shield animations */
 @keyframes rotate-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes rotate-ccw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
-.shield-ring-1 { animation: rotate-cw 20s linear infinite; transform-origin: 230px 185px; }
-.shield-ring-2 { animation: rotate-ccw 14s linear infinite; transform-origin: 230px 185px; }
-.shield-ring-3 { animation: rotate-cw 9s linear infinite; transform-origin: 230px 185px; }
+.shield-ring-1 { animation: rotate-cw 20s linear infinite; transform-origin: 400px 140px; }
+.shield-ring-2 { animation: rotate-ccw 14s linear infinite; transform-origin: 400px 140px; }
+.shield-ring-3 { animation: rotate-cw 9s linear infinite; transform-origin: 400px 140px; }
+.continent { stroke-width: 0.5; stroke-linejoin: round; }
 .attack-arc { fill: none; stroke-width: 0.8; stroke-dasharray: 5,4; opacity: 0.3; animation: arc-dash 2s linear infinite; }
 @keyframes arc-dash { to { stroke-dashoffset: -18; } }
 
@@ -71,9 +74,9 @@ nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 40
 .m-countries { display: flex; gap: 6px; }
 .m-country { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #666; background: rgba(124,58,237,0.03); border: 1px solid rgba(124,58,237,0.06); border-radius: 5px; padding: 3px 8px; }
 .m-country .ct { color: #C084FC; font-weight: 600; font-family: monospace; }
-.map-ticker { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(239,68,68,0.03); border: 1px solid rgba(239,68,68,0.08); border-radius: 8px; font-size: 10px; color: #888; }
+.map-ticker { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; background: rgba(239,68,68,0.03); border: 1px solid rgba(239,68,68,0.08); border-radius: 8px; font-size: 10px; color: #888; }
 .map-ticker strong { color: #E2E8F0; }
-.map-ticker .cyan { color: #06B6D4; }
+.map-ticker .cyan { color: #06B6D4; word-break: break-all; }
 .map-ticker .time { margin-left: auto; color: #333; font-size: 9px; }
 .ticker-dot { width: 5px; height: 5px; background: #EF4444; border-radius: 50%; flex-shrink: 0; animation: blink 1s infinite; }
 
@@ -136,27 +139,74 @@ footer { padding: 50px 40px 30px; border-top: 1px solid rgba(124,58,237,0.05); m
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  nav { padding: 12px 20px; }
+  nav { padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); }
   .nav-links { display: none; }
-  .hero { padding: 100px 20px 40px; }
-  .hero-heading { font-size: 32px; }
+  .nav-cta { padding: 8px 16px; font-size: 12px; white-space: nowrap; }
+  .hero { padding: 90px 16px 40px; }
+  .hero-heading { font-size: clamp(26px, 7vw, 36px); }
   .hero-sub { font-size: 14px; }
-  .hero-btns { flex-direction: column; align-items: center; }
-  .fp-panel { display: none; }
+  .hero-btns { flex-direction: column; align-items: stretch; }
+  .hero-btns .btn-primary,
+  .hero-btns .btn-secondary { width: 100%; text-align: center; }
+  .hero-map { padding: 16px; }
+  .fp-panel { position: relative; top: auto; right: auto; width: 100%; margin-bottom: 12px;
+    display: flex; flex-direction: column; align-items: center; }
+  .fp-header { justify-content: center; font-size: 9px; }
+  .fp-visual { height: 120px; width: 100%; max-width: 220px; margin: 0 auto; }
+  .fp-data { font-size: 7px; }
+  .map-svg { min-height: 160px; }
+  .map-bottom { margin-top: 12px; padding-top: 12px; }
   .map-stats { flex-direction: column; gap: 10px; align-items: flex-start; }
-  .m-countries { flex-wrap: wrap; }
-  .demo-section { padding: 60px 20px; }
-  .demo-grid { grid-template-columns: 1fr; }
-  .pricing-grid { grid-template-columns: 1fr; }
+  .map-stats-left { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+  .m-countries { flex-wrap: wrap; gap: 6px; }
+  .map-ticker { flex-wrap: wrap; gap: 6px; font-size: 9px; padding: 10px; }
+  .map-ticker .time { margin-left: 0; width: 100%; text-align: right; }
+  .demo-section { padding: 50px 16px; }
+  .section-heading { font-size: 24px; }
+  .demo-box { padding: 20px 14px; }
+  .demo-btn { padding: 14px 24px; font-size: 13px; max-width: 100%; white-space: normal; word-wrap: break-word; }
+  .demo-grid { grid-template-columns: 1fr; gap: 6px; }
+  .pricing-section { padding: 50px 16px; }
+  .pricing-grid { grid-template-columns: 1fr; gap: 16px; }
+  .price-card { border-width: 1.5px; border-color: rgba(124,58,237,0.15); }
+  .price-card.featured { border-width: 1.5px; }
+  .price-features li { padding: 10px 0; min-height: 44px; align-items: center; }
+  footer { padding: 40px 16px 30px; padding-bottom: max(30px, env(safe-area-inset-bottom)); }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .footer-brand { grid-column: 1 / -1; }
+  .footer-bottom { flex-direction: column; gap: 12px; align-items: center; }
+  .footer-socials { gap: 20px; }
+  .footer-socials a { font-size: 18px; padding: 6px; }
 }
-@media (max-width: 380px) {
-  .hero { padding: 90px 16px 30px; }
-  .hero-heading { font-size: 26px; }
-  .nav-cta { padding: 6px 14px; font-size: 11px; }
-  .demo-box { padding: 20px 16px; }
-  .price-card { padding: 24px 16px; }
-  .footer-grid { grid-template-columns: 1fr; }
+@media (max-width: 480px) {
+  nav { padding: 10px 12px; }
+  .nav-logo { font-size: 16px; }
+  .nav-cta { padding: 6px 12px; font-size: 11px; }
+  .hero { padding: 80px 12px 30px; }
+  .hero-heading { font-size: clamp(22px, 6.5vw, 28px); }
+  .hero-badge { font-size: 10px; padding: 3px 10px; }
+  .hero-map { padding: 12px; border-radius: 12px; }
+  .fp-visual { height: 100px; }
+  .fp-ring { transform: translate(-50%, -50%) scale(0.8); }
+  .map-stats-left { gap: 6px; }
+  .m-stat-num { font-size: 13px; }
+  .m-stat-label { font-size: 8px; }
+  .m-country { font-size: 8px; padding: 2px 6px; }
+  .section-heading { font-size: 20px; }
+  .section-sub { font-size: 12px; }
+  .demo-box { padding: 16px 12px; }
+  .demo-item { padding: 8px 10px; }
+  .demo-item-value { font-size: 11px; word-break: break-all; }
+  .price-card { padding: 24px 14px; }
+  .price-amount { font-size: 32px; }
+  .footer-grid { grid-template-columns: 1fr; gap: 20px; }
+}
+@media (max-width: 350px) {
+  .hero-heading { font-size: 22px; }
+  .hero-sub { font-size: 13px; }
+  .map-stats-left { grid-template-columns: 1fr 1fr; }
+  .m-countries { display: none; }
+  .demo-btn { font-size: 12px; padding: 12px 16px; }
 }
 </style>
 </head>
@@ -212,64 +262,62 @@ footer { padding: 50px 40px 30px; border-top: 1px solid rgba(124,58,237,0.05); m
       </div>
       <!-- SVG Map -->
       <svg class="map-svg" viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg">
-        <g fill="none" stroke="rgba(124,58,237,0.1)" stroke-width="0.7">
-          <path d="M10,90 Q35,68 65,74 L90,78 Q110,72 135,78 L148,92 Q144,108 132,118 L115,128 Q100,132 85,128 L70,123 Q55,126 45,133 L35,138 Q20,133 15,123 L13,112 Q17,98 10,90"/>
-          <path d="M55,200 Q68,188 80,193 L92,203 Q98,220 95,236 L88,256 Q82,271 75,280 L66,284 Q58,276 55,264 L53,244 Q50,224 55,208 Z"/>
-          <path d="M240,78 Q257,69 273,75 L289,80 Q300,75 311,80 L317,88 Q313,96 305,101 L290,104 Q275,106 265,103 L255,98 Q247,92 243,85 Z"/>
-          <path d="M225,132 Q243,124 260,129 L275,137 Q281,152 278,168 L272,189 Q265,204 255,209 L240,206 Q230,198 227,182 L223,162 Q220,146 225,132"/>
-          <path d="M305,68 Q337,58 370,63 L410,70 Q440,66 470,73 L500,78 Q520,84 530,94 L535,108 Q530,123 515,128 L490,133 Q460,136 430,133 L400,128 Q370,125 350,118 L330,110 Q315,103 310,93 Z"/>
-          <path d="M375,128 Q385,122 398,126 L410,134 Q415,146 412,159 L406,172 Q398,179 390,174 L382,166 Q376,154 375,142 Z"/>
-          <path d="M475,232 Q498,222 518,228 L532,236 Q538,246 533,256 L523,264 Q508,268 496,262 L485,254 Q476,242 475,232"/>
-          <path d="M310,114 Q325,109 338,116 L345,124 Q342,132 335,134 L320,132 Q312,126 310,119 Z"/>
-          <path d="M520,98 Q525,92 530,98 L532,106 Q529,112 525,109 Z"/>
-          <path d="M223,74 Q227,69 231,74 L230,81 Q226,83 223,79 Z"/>
-          <path d="M450,138 Q460,133 470,138 L475,145 Q472,151 466,149 L455,146 Q450,143 450,138"/>
-        </g>
-        <line x1="0" y1="180" x2="800" y2="180" stroke="rgba(124,58,237,0.025)" stroke-width="0.3" stroke-dasharray="3,8"/>
+        <!-- Continents (Natural Earth 110m, centered on India 78°E) -->
+        <path class="continent" fill="rgba(124,58,237,0.08)" stroke="rgba(124,58,237,0.25)" d="M421,82 416,86 412,85 410,89 404,90 406,94 405,95 392,93 385,95 379,99 375,98 371,93 364,93 357,89 351,90 351,97 347,95 343,96 338,91 345,89 345,86 336,87 330,83 332,79 335,80 339,77 363,78 360,76 364,74 363,72 380,69 390,73 398,71 405,78 412,78 421,82Z M351,97 351,90 357,89 364,93 371,93 378,99 384,95 383,97 389,98 377,101 377,106 357,94 351,97Z M540,185 555,192 554,195 562,201 555,200 548,195 544,199 540,198 540,185Z M540,185 540,198 532,197 535,195 533,191 522,188 520,186 524,184 517,182 524,182 528,187 532,183 540,185Z M489,172 487,174 491,178 488,178 485,188 472,186 469,179 470,176 472,178 480,178 484,171 489,172Z M500,178 505,177 493,181 495,183 501,181 497,184 500,191 497,189 495,185 493,191 491,186 493,180 495,177 500,178Z M468,193 484,197 461,194 462,192 468,193Z M459,182 462,186 462,192 455,188 438,169 443,170 459,182Z M306,115 313,113 314,116 309,117 311,119 307,122 304,121 306,115Z M349,135 352,130 360,135 355,142 345,147 342,142 349,140 349,135Z M460,151 456,152 455,156 449,153 447,162 453,168 445,164 448,156 445,150 446,148 443,143 445,141 450,140 451,145 458,144 461,149 460,151Z M449,139 443,143 446,148 445,150 448,156 446,160 443,146 436,148 436,144 432,137 438,127 444,123 446,128 444,132 451,136 449,139Z M459,159 466,155 466,150 458,141 459,138 456,138 454,135 461,133 467,137 461,142 469,149 469,157 460,163 459,159Z M422,81 432,78 443,81 446,76 468,81 486,80 484,85 493,86 475,90 475,93 472,94 460,97 441,95 438,92 429,89 429,86 422,81Z M443,123 433,136 429,133 432,130 423,127 424,137 420,137 419,140 405,148 404,159 399,164 390,148 388,137 383,138 378,133 385,131 381,126 386,124 394,115 391,111 400,109 402,111 402,117 407,120 405,122 412,125 422,127 424,124 426,127 431,126 430,124 440,121 443,123Z M400,109 391,111 394,115 386,124 381,126 385,131 378,133 374,129 363,130 367,126 362,120 374,120 375,117 381,116 386,107 394,106 400,109Z M374,105 384,103 386,107 394,106 385,108 381,116 375,117 374,120 362,120 364,119 361,114 363,109 374,105Z M384,95 392,93 405,95 390,101 381,101 389,98 383,97 384,95Z M343,96 354,97 357,94 374,105 365,109 354,104 346,106 344,100 348,98 343,96Z M335,120 328,112 329,109 325,101 333,101 340,106 352,104 362,107 361,114 364,119 362,120 367,126 363,130 354,129 353,126 346,126 338,120 335,120Z M306,115 308,106 321,106 318,111 306,115Z M405,95 404,90 410,89 412,85 416,86 422,81 429,86 429,89 438,92 441,95 460,97 469,95 475,93 475,90 493,87 489,84 483,84 486,80 492,80 498,73 507,74 510,80 518,84 527,83 522,90 518,90 517,95 496,102 497,98 488,103 493,106 499,105 491,110 498,117 497,124 490,131 473,137 472,139 461,133 453,135 447,136 446,132 444,132 446,125 440,121 424,125 402,117 402,111 390,101 405,95Z M542,102 538,110 528,113 527,111 518,112 520,114 516,117 514,113 521,109 528,109 530,105 537,104 538,98 541,97 542,102Z M548,92 550,91 550,93 538,97 542,89 548,92Z M304,121 311,119 309,117 316,116 326,122 334,123 342,134 350,136 349,140 331,146 323,145 322,147 304,124 304,121Z M489,172 484,171 480,178 472,178 470,176 483,171 486,166 492,169 489,172Z M499,144 497,151 502,152 502,155 495,152 493,149 495,143 499,144Z"/>
+        <path class="continent" fill="rgba(6,182,212,0.06)" stroke="rgba(6,182,212,0.2)" d="M302,182 314,189 314,197 316,201 303,203 302,199 295,197 292,189 295,187 294,182 302,182Z M207,125 207,128 200,128 198,137 189,138 194,137 201,126 207,125Z M292,189 295,197 291,197 290,204 293,207 287,203 276,202 275,195 265,196 263,192 254,192 262,187 270,170 276,172 284,169 293,171 296,176 293,179 292,189Z M319,183 318,174 327,170 335,161 335,157 340,156 335,169 319,183Z M314,189 302,182 305,176 302,171 305,169 311,173 320,172 318,174 319,183 314,189Z M280,141 280,149 278,149 275,155 277,158 267,164 261,165 258,161 261,160 257,151 261,147 262,139 260,134 262,133 280,141Z M263,237 271,237 271,230 275,233 278,231 284,231 292,224 296,225 298,229 295,233 300,233 298,238 289,246 271,250 268,248 267,243 263,237Z M271,230 271,237 263,237 253,215 282,215 273,217 271,230Z M201,155 201,149 214,149 212,130 216,130 236,142 235,149 218,153 213,160 209,160 206,155 201,155Z M260,134 262,139 261,147 257,151 258,155 256,153 247,154 239,152 236,153 235,157 229,154 228,150 235,149 236,142 253,133 260,134Z M233,167 236,153 247,154 256,153 259,156 253,166 247,167 246,170 240,171 236,167 233,167Z M295,197 301,199 300,208 294,210 287,216 278,215 275,212 275,206 280,206 280,202 293,207 290,204 290,198 295,197Z M303,203 316,201 317,209 304,220 305,228 298,233 296,225 299,221 300,213 294,210 300,208 305,214 306,209 303,203Z M254,192 263,192 265,196 275,195 276,202 280,202 280,206 275,206 275,212 278,215 253,215 257,203 254,192Z M337,205 339,210 331,230 325,230 323,224 325,220 325,212 330,212 337,205Z M207,125 207,122 224,115 222,110 224,109 245,106 243,112 248,121 247,128 253,133 234,142 207,125Z M282,136 282,140 280,141 262,133 258,135 250,131 247,128 249,117 252,114 269,119 273,115 282,116 282,136Z M309,136 282,136 282,118 303,118 304,121 303,124 298,120 309,136Z M333,164 327,170 315,173 307,171 300,164 308,151 311,150 319,153 321,155 319,158 324,162 333,164Z M302,182 292,183 295,173 302,171 305,176 302,182Z M295,173 289,171 280,163 282,159 296,160 298,156 300,156 302,163 300,164 305,169 301,172 295,173Z M281,164 275,155 280,149 282,136 309,136 312,144 309,146 302,163 299,156 296,160 282,159 280,163 281,164Z"/>
+        <path class="continent" fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.22)" d="M517,96 518,90 522,90 527,83 518,84 510,80 505,74 496,73 489,81 481,80 468,81 446,76 443,81 432,78 421,82 412,78 405,78 398,71 390,73 380,69 363,72 364,74 360,76 363,78 339,77 335,80 332,79 330,83 336,87 330,91 335,96 332,98 308,90 316,81 305,79 302,75 297,76 296,74 299,73 295,69 289,68 288,63 291,60 289,59 297,54 292,50 293,45 290,43 298,40 318,45 312,48 300,47 304,51 309,52 315,51 320,47 324,48 323,43 329,44 330,47 346,42 360,43 361,40 379,44 380,43 375,38 382,34 388,36 390,43 385,47 388,48 393,44 389,37 393,34 396,38 399,35 408,37 406,33 420,30 459,25 480,28 470,32 509,33 518,38 537,37 539,34 559,36 580,38 584,41 604,43 605,40 617,40 639,47 645,46 649,48 642,51 627,48 621,51 625,55 605,60 590,60 587,64 589,65 587,70 575,78 573,66 592,55 582,59 575,57 569,60 571,62 543,62 527,71 541,74 538,83 526,93 517,96Z M544,73 548,82 545,81 546,88 542,88 542,73 544,73Z M240,81 245,82 240,87 243,93 231,95 222,93 224,88 216,83 223,83 222,80 232,78 240,81Z M251,62 255,57 253,54 264,44 273,42 279,44 280,48 266,55 265,57 268,60 264,63 262,68 255,69 251,62Z M289,68 295,69 299,73 296,74 295,77 279,77 279,72 289,68Z M258,72 260,78 254,79 257,82 255,85 243,85 245,82 240,81 240,76 246,70 258,72Z"/>
+        <path class="continent" fill="rgba(124,58,237,0.06)" stroke="rgba(124,58,237,0.2)" d="M713,41 713,59 721,62 726,60 738,69 733,69 729,64 710,60 700,58 690,62 692,57 675,68 660,71 678,62 667,63 666,60 659,59 658,56 669,52 669,50 653,49 667,48 657,42 679,37 713,41Z M52,35 74,39 78,42 74,43 89,46 85,50 76,47 83,53 74,53 80,56 74,55 60,51 52,51 62,49 65,45 51,40 30,39 26,36 36,32 36,35 44,32 47,36 52,35Z M123,15 166,13 180,15 156,16 200,17 182,20 187,20 183,22 186,26 178,27 183,28 181,30 184,31 174,33 177,36 172,35 178,39 170,37 168,40 177,40 138,49 132,55 130,60 119,58 112,53 107,46 114,40 105,41 106,38 112,39 103,37 105,35 96,29 74,28 68,26 78,25 64,24 81,21 76,20 87,16 128,17 123,15Z M103,77 100,80 108,82 109,87 106,84 95,85 99,79 103,77Z"/>
+        <path class="continent" fill="rgba(6,182,212,0.05)" stroke="rgba(6,182,212,0.18)" d="M99,240 97,249 100,254 95,257 88,258 87,262 82,262 86,265 77,271 76,273 81,274 73,281 75,285 67,284 64,279 68,270 66,265 75,229 79,224 87,224 98,230 96,234 103,235 106,231 107,234 99,240Z M72,215 76,226 78,226 75,234 70,243 72,248 66,265 68,270 64,279 67,284 74,285 68,288 60,285 59,277 62,274 59,273 65,265 61,266 63,254 68,245 70,217 72,215Z M108,248 107,244 99,240 107,232 103,225 98,224 97,213 93,213 92,208 81,203 81,200 70,202 70,199 66,200 62,195 65,191 71,189 72,177 81,178 86,176 83,172 93,170 97,177 109,176 113,172 116,177 114,180 119,182 138,186 148,191 149,198 141,206 136,224 121,230 118,237 108,248Z M72,202 81,200 81,203 92,208 93,213 97,213 98,220 89,219 87,224 76,226 72,215 74,205 72,202Z M71,189 65,191 62,195 66,200 70,199 74,205 73,213 70,217 58,209 46,189 48,187 52,189 60,180 64,185 71,185 71,189Z M78,177 72,177 71,189 71,185 55,179 51,177 55,172 55,163 68,155 64,162 67,166 77,168 78,177Z"/>
+        <path class="continent" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.18)" d="M620,260 615,263 616,261 613,259 615,255 610,249 618,255 623,255 620,260Z M604,267 611,261 614,263 606,272 597,272 604,267Z M555,262 556,264 553,267 548,262 555,262Z M507,244 501,248 489,250 482,248 484,244 479,232 481,233 479,225 495,219 506,208 515,210 517,205 521,204 521,202 530,204 528,210 538,215 543,201 546,209 550,210 552,218 562,225 568,236 560,255 552,258 549,256 546,258 539,256 534,251 531,251 533,246 529,250 525,245 519,243 507,244Z"/>
+        <!-- Grid lines -->
+        <line x1="0" y1="180" x2="800" y2="180" stroke="rgba(124,58,237,0.03)" stroke-width="0.3" stroke-dasharray="3,8"/>
+        <line x1="0" y1="90" x2="800" y2="90" stroke="rgba(124,58,237,0.02)" stroke-width="0.3" stroke-dasharray="3,8"/>
+        <line x1="0" y1="270" x2="800" y2="270" stroke="rgba(124,58,237,0.02)" stroke-width="0.3" stroke-dasharray="3,8"/>
+        <line x1="400" y1="0" x2="400" y2="360" stroke="rgba(124,58,237,0.02)" stroke-width="0.3" stroke-dasharray="3,8"/>
         <!-- Shield -->
-        <circle class="shield-ring-1" cx="230" cy="185" r="52" fill="none" stroke="rgba(124,58,237,0.1)" stroke-width="0.7" stroke-dasharray="8,6"/>
-        <circle class="shield-ring-1" cx="282" cy="185" r="2" fill="#7C3AED" opacity="0.45"/>
-        <circle class="shield-ring-1" cx="178" cy="185" r="2" fill="#7C3AED" opacity="0.45"/>
-        <circle class="shield-ring-1" cx="230" cy="133" r="2" fill="#06B6D4" opacity="0.45"/>
-        <circle class="shield-ring-1" cx="230" cy="237" r="2" fill="#06B6D4" opacity="0.45"/>
-        <circle class="shield-ring-2" cx="230" cy="185" r="35" fill="none" stroke="rgba(6,182,212,0.13)" stroke-width="0.7" stroke-dasharray="5,5"/>
-        <circle class="shield-ring-2" cx="265" cy="185" r="1.5" fill="#06B6D4" opacity="0.5"/>
-        <circle class="shield-ring-2" cx="195" cy="185" r="1.5" fill="#06B6D4" opacity="0.5"/>
-        <circle class="shield-ring-2" cx="230" cy="150" r="1.5" fill="#7C3AED" opacity="0.5"/>
-        <circle class="shield-ring-3" cx="230" cy="185" r="20" fill="none" stroke="rgba(124,58,237,0.18)" stroke-width="0.8" stroke-dasharray="3,4"/>
-        <circle cx="230" cy="185" r="7" fill="rgba(124,58,237,0.12)"/>
-        <circle cx="230" cy="185" r="4" fill="#7C3AED" opacity="0.85"/>
-        <circle cx="230" cy="185" r="11" fill="none" stroke="#7C3AED" opacity="0.12" stroke-width="0.5">
+        <circle class="shield-ring-1" cx="400" cy="140" r="52" fill="none" stroke="rgba(124,58,237,0.12)" stroke-width="0.7" stroke-dasharray="8,6"/>
+        <circle class="shield-ring-1" cx="452" cy="140" r="2" fill="#7C3AED" opacity="0.45"/>
+        <circle class="shield-ring-1" cx="348" cy="140" r="2" fill="#7C3AED" opacity="0.45"/>
+        <circle class="shield-ring-1" cx="400" cy="88" r="2" fill="#06B6D4" opacity="0.45"/>
+        <circle class="shield-ring-1" cx="400" cy="192" r="2" fill="#06B6D4" opacity="0.45"/>
+        <circle class="shield-ring-2" cx="400" cy="140" r="35" fill="none" stroke="rgba(6,182,212,0.15)" stroke-width="0.7" stroke-dasharray="5,5"/>
+        <circle class="shield-ring-2" cx="435" cy="140" r="1.5" fill="#06B6D4" opacity="0.5"/>
+        <circle class="shield-ring-2" cx="365" cy="140" r="1.5" fill="#06B6D4" opacity="0.5"/>
+        <circle class="shield-ring-2" cx="400" cy="105" r="1.5" fill="#7C3AED" opacity="0.5"/>
+        <circle class="shield-ring-3" cx="400" cy="140" r="20" fill="none" stroke="rgba(124,58,237,0.2)" stroke-width="0.8" stroke-dasharray="3,4"/>
+        <circle cx="400" cy="140" r="7" fill="rgba(124,58,237,0.15)"/>
+        <circle cx="400" cy="140" r="4" fill="#7C3AED" opacity="0.85"/>
+        <circle cx="400" cy="140" r="11" fill="none" stroke="#7C3AED" opacity="0.15" stroke-width="0.5">
           <animate attributeName="r" values="11;16;11" dur="3s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.12;0.04;0.12" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.15;0.04;0.15" dur="3s" repeatCount="indefinite"/>
         </circle>
-        <text x="230" y="205" font-size="6.5" fill="#7C3AED" font-family="Inter,sans-serif" text-anchor="middle" opacity="0.6">PROTECTED</text>
+        <text x="400" y="160" font-size="6.5" fill="#7C3AED" font-family="Inter,sans-serif" text-anchor="middle" opacity="0.6">PROTECTED</text>
         <!-- Attack Arcs -->
-        <path class="attack-arc" d="M290,55 C268,100 250,145 230,185" stroke="#EF4444"/>
-        <circle cx="290" cy="52" r="3.5" fill="#EF4444" opacity="0.85"/>
-        <circle cx="290" cy="52" r="3.5" fill="none" stroke="#EF4444"><animate attributeName="r" values="3.5;11;3.5" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.45;0;0.45" dur="2.5s" repeatCount="indefinite"/></circle>
-        <text x="298" y="48" font-size="7" fill="#FCA5A5" font-family="monospace" opacity="0.65">Moscow</text>
-        <path class="attack-arc" d="M480,85 C385,120 308,155 230,185" stroke="#EF4444" style="animation-delay:0.7s;"/>
-        <circle cx="480" cy="85" r="3.5" fill="#EF4444" opacity="0.8"/>
-        <circle cx="480" cy="85" r="3.5" fill="none" stroke="#EF4444"><animate attributeName="r" values="3.5;10;3.5" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.2s" repeatCount="indefinite"/></circle>
-        <text x="488" y="81" font-size="7" fill="#FCA5A5" font-family="monospace" opacity="0.65">Beijing</text>
-        <path class="attack-arc" d="M70,245 C120,225 175,205 230,185" stroke="#F59E0B" style="animation-delay:1.2s;"/>
-        <circle cx="70" cy="245" r="3" fill="#F59E0B" opacity="0.7"/>
-        <circle cx="70" cy="245" r="3" fill="none" stroke="#F59E0B"><animate attributeName="r" values="3;9;3" dur="2.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.35;0;0.35" dur="2.8s" repeatCount="indefinite"/></circle>
-        <text x="43" y="257" font-size="7" fill="#FCD34D" font-family="monospace" opacity="0.6">São Paulo</text>
-        <path class="attack-arc" d="M65,100 C118,125 174,155 230,185" stroke="#EF4444" style="animation-delay:1.8s;"/>
-        <circle cx="65" cy="100" r="3" fill="#EF4444" opacity="0.75"/>
-        <circle cx="65" cy="100" r="3" fill="none" stroke="#EF4444"><animate attributeName="r" values="3;9;3" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.35;0;0.35" dur="2.4s" repeatCount="indefinite"/></circle>
-        <text x="35" y="95" font-size="7" fill="#FCA5A5" font-family="monospace" opacity="0.65">New York</text>
-        <path class="attack-arc" d="M235,162 C233,172 231,179 230,185" stroke="#F59E0B" style="animation-delay:2.2s;"/>
-        <circle cx="237" cy="158" r="2.5" fill="#F59E0B" opacity="0.6"/>
-        <text x="243" y="155" font-size="7" fill="#FCD34D" font-family="monospace" opacity="0.55">Lagos</text>
-        <circle cx="505" cy="245" r="2" fill="#7C3AED" opacity="0.3"/>
-        <text x="490" y="258" font-size="6" fill="#7C3AED" font-family="monospace" opacity="0.3">Sydney</text>
+        <path class="attack-arc" d="M310,69 C340,90 370,115 400,140" stroke="#EF4444"/>
+        <circle cx="310" cy="69" r="3.5" fill="#EF4444" opacity="0.85"/>
+        <circle cx="310" cy="69" r="3.5" fill="none" stroke="#EF4444"><animate attributeName="r" values="3.5;11;3.5" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.45;0;0.45" dur="2.5s" repeatCount="indefinite"/></circle>
+        <text x="290" y="63" font-size="7" fill="#FCA5A5" font-family="monospace" opacity="0.7">Moscow</text>
+        <path class="attack-arc" d="M485,100 C455,112 428,126 400,140" stroke="#EF4444" style="animation-delay:0.7s;"/>
+        <circle cx="485" cy="100" r="3.5" fill="#EF4444" opacity="0.8"/>
+        <circle cx="485" cy="100" r="3.5" fill="none" stroke="#EF4444"><animate attributeName="r" values="3.5;10;3.5" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.2s" repeatCount="indefinite"/></circle>
+        <text x="493" y="96" font-size="7" fill="#FCA5A5" font-family="monospace" opacity="0.7">Beijing</text>
+        <path class="attack-arc" d="M123,227 C200,200 300,170 400,140" stroke="#F59E0B" style="animation-delay:1.2s;"/>
+        <circle cx="123" cy="227" r="3" fill="#F59E0B" opacity="0.7"/>
+        <circle cx="123" cy="227" r="3" fill="none" stroke="#F59E0B"><animate attributeName="r" values="3;9;3" dur="2.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.35;0;0.35" dur="2.8s" repeatCount="indefinite"/></circle>
+        <text x="93" y="237" font-size="7" fill="#FCD34D" font-family="monospace" opacity="0.65">São Paulo</text>
+        <path class="attack-arc" d="M62,99 C150,110 280,125 400,140" stroke="#EF4444" style="animation-delay:1.8s;"/>
+        <circle cx="62" cy="99" r="3" fill="#EF4444" opacity="0.75"/>
+        <circle cx="62" cy="99" r="3" fill="none" stroke="#EF4444"><animate attributeName="r" values="3;9;3" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.35;0;0.35" dur="2.4s" repeatCount="indefinite"/></circle>
+        <text x="35" y="93" font-size="7" fill="#FCA5A5" font-family="monospace" opacity="0.7">New York</text>
+        <path class="attack-arc" d="M234,167 C280,158 340,149 400,140" stroke="#F59E0B" style="animation-delay:2.2s;"/>
+        <circle cx="234" cy="167" r="2.5" fill="#F59E0B" opacity="0.6"/>
+        <text x="208" y="175" font-size="7" fill="#FCD34D" font-family="monospace" opacity="0.6">Lagos</text>
+        <circle cx="563" cy="248" r="2" fill="#7C3AED" opacity="0.3"/>
+        <text x="548" y="260" font-size="6" fill="#7C3AED" font-family="monospace" opacity="0.35">Sydney</text>
         <!-- Caught indicators -->
-        <circle cx="208" cy="155" r="2.5" fill="#EF4444" opacity="0.4"><animate attributeName="opacity" values="0.4;0.15;0.4" dur="1.5s" repeatCount="indefinite"/></circle>
-        <circle cx="258" cy="168" r="2" fill="#EF4444" opacity="0.35"><animate attributeName="opacity" values="0.35;0.1;0.35" dur="1.8s" repeatCount="indefinite"/></circle>
-        <circle cx="215" cy="212" r="2" fill="#F59E0B" opacity="0.3"><animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite"/></circle>
+        <circle cx="380" cy="120" r="2.5" fill="#EF4444" opacity="0.4"><animate attributeName="opacity" values="0.4;0.15;0.4" dur="1.5s" repeatCount="indefinite"/></circle>
+        <circle cx="425" cy="128" r="2" fill="#EF4444" opacity="0.35"><animate attributeName="opacity" values="0.35;0.1;0.35" dur="1.8s" repeatCount="indefinite"/></circle>
+        <circle cx="390" cy="165" r="2" fill="#F59E0B" opacity="0.3"><animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite"/></circle>
       </svg>
       <!-- Map Bottom Stats -->
       <div class="map-bottom">
